@@ -13,7 +13,7 @@ You host it **on your own computer**. Friends join **from anywhere in the world*
 - 🪢 **A real rope.** It sags, drapes over edges, lies on the floor, wraps around walls and gets dragged by moving blocks. Catch a falling friend, pull them back up, or climb up yourself.
 - 🧱 **The Sky Course** — 6 sections: warm-up jumps, thin zig-zag bridges, spinning discs with a sweeper bar, sliding stones and pusher blocks, a brick maze, and a tower climb to the finish.
 - 👥 **Rope modes:** one big chain, teams of 3, or teams of 2 racing on the same path (bump into rivals and punch them off bridges 😈).
-- 🎭 **Fun actions:** wave 👋, dance 💃, cheer 🎉 and punch 👊 (a small shove).
+- 🎭 **Fun actions:** wave 👋, dance 💃, cheer 🎉, punch 👊 (a small shove) and kick 🦵 (a big shove).
 - 🧍 **Blocky characters** with your name above your head, 8 shirt colors and 10 hats (Viking helmet, propeller cap, crown…).
 - 🤖 **Robot buddies** to fill empty spots — or to test it alone.
 - 🏁 Checkpoints, a 3-2-1-GO countdown, a race timer, results with medals, sounds and confetti.
@@ -61,7 +61,8 @@ That's it! Keep the computer **on and awake** while you play (plugged in, sleep 
 | Jump | ⤒ button | Space |
 | Climb up the rope (while hanging) | Tap ⤒ again and again | Tap Space |
 | Pull a hanging friend up (stand still on solid ground) | Hold the 🪢 button | Hold E |
-| Punch 👊 | 👊 button | F or click |
+| Punch 👊 | Punch button | F or click |
+| Kick 🦵 (bigger shove, slower) | Kick button | G |
 | Wave / Dance / Cheer | 😀 button → pick one | 1 / 2 / 3 |
 
 ## ❓ Questions

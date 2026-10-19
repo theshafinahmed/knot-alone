@@ -1769,12 +1769,22 @@ body.touch.playing #pull:not(.needed) {
   width: 84px;
   height: 84px;
   right: calc(var(--safe-r) + 6px);
-  bottom: calc(var(--safe-b) + 184px);
+  bottom: calc(var(--safe-b) + 256px);
   background: #17766b;
   animation: pull-call 0.9s ease-in-out infinite;
 }
 
-#punch svg {
+/* Kick sits right above Punch: a slower, harder hit */
+#kick {
+  width: 64px;
+  height: 64px;
+  right: calc(var(--safe-r) + 16px);
+  bottom: calc(var(--safe-b) + 182px);
+  background: #c75b00;
+}
+
+#punch svg,
+#kick svg {
   width: 26px;
   height: 26px;
 }
@@ -1856,9 +1866,19 @@ body:not(.playing) #emote-menu {
 
 /* Phone held sideways: the right column would be too tall, so Pull goes to the left of Jump. */
 @media (max-height: 520px) {
+  #punch {
+    right: calc(var(--safe-r) + 112px);
+    bottom: calc(var(--safe-b) - 4px);
+  }
+
+  #kick {
+    right: calc(var(--safe-r) + 186px);
+    bottom: calc(var(--safe-b) - 4px);
+  }
+
   #pull {
-    right: calc(var(--safe-r) + 96px + 14px);
-    bottom: calc(var(--safe-b) + 4px);
+    right: calc(var(--safe-r) + 150px);
+    bottom: calc(var(--safe-b) + 72px);
   }
 
   #emote {

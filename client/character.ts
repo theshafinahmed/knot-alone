@@ -2,7 +2,7 @@
 
 import * as THREE from 'three';
 import type { Hat } from '../shared/looks';
-import { ACTION_EMOJI, PUNCH, type ActionKind } from '../shared/actions';
+import { ACTION_EMOJI, KICK, PUNCH, type ActionKind } from '../shared/actions';
 import { createHat } from './hats';
 import { createNameTag } from './nametag';
 import { ropeTexture } from './rope';
@@ -302,6 +302,19 @@ export class BlockyCharacter {
           rightArm = -1.65;
           rightOut = 0.05;
           tilt += 0.15;
+        }
+        break;
+      case 'kick': // lift the leg back, then swing it hard to the front (arms out for balance)
+        armEase = 30;
+        leftOut = rightOut = 0.9;
+        leftArm = 0.7;
+        rightArm = -0.7;
+        if (t < KICK.hitAt) {
+          rightLeg = 0.9;
+          tilt -= 0.1;
+        } else if (t < KICK.hitAt + 0.2) {
+          rightLeg = -1.6;
+          tilt -= 0.2;
         }
         break;
       case 'dance': // swing arms, wiggle the hips, bop up and down

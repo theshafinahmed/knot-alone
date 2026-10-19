@@ -1,13 +1,14 @@
 // Controls 🎮
 // Phone: movement circle in the bottom-left corner, drag anywhere else to look, big button = jump.
 // Computer: WASD / arrows = move, Space = jump, mouse = look (click the game first).
-// Fun actions: phone = 👊 button + 😀 menu; computer = F or click to punch, 1 wave, 2 dance, 3 cheer.
+// Fun actions: phone = 👊 and 🦵 buttons + 😀 menu; computer = F or click to punch, G to kick, 1 wave, 2 dance, 3 cheer.
 // Pull a hanging friend up: phone = hold the 🪢 button; computer = hold E.
 
 import { isAction, type ActionKind } from '../shared/actions';
 
 const KEY_ACTIONS: Record<string, ActionKind> = {
   KeyF: 'punch',
+  KeyG: 'kick',
   Digit1: 'wave',
   Digit2: 'dance',
   Digit3: 'cheer',
@@ -62,6 +63,7 @@ export class Controls {
       jump: HTMLElement;
       hint: HTMLElement;
       punch: HTMLElement;
+      kick: HTMLElement;
       pull: HTMLElement;
       emote: HTMLElement;
       emoteMenu: HTMLElement;
@@ -96,6 +98,7 @@ export class Controls {
 
     // 👊 Punch button, and the 😀 button that opens the fun-actions menu.
     pressable(ui.punch, () => (this.actionQueued = 'punch'));
+    pressable(ui.kick, () => (this.actionQueued = 'kick'));
     pressable(ui.emote, () => ui.emoteMenu.classList.toggle('hidden'));
     for (const button of ui.emoteMenu.querySelectorAll<HTMLButtonElement>('button[data-action]')) {
       button.addEventListener('pointerdown', (e) => {

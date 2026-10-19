@@ -66,3 +66,4 @@
 | 2026-10-19 | Name tags scale with camera distance (smaller and fainter when close, larger when far) | Close tags were huge and covered the characters. |
 | 2026-10-19 | UI redesign order: **Join + Lobby first**, then Invite and Results (mocked up on the canvas before building) | Shafin's pick. Join + Lobby are the biggest first impression and are already designed. |
 | 2026-10-19 | Join screen preview is a **flat drawn character** in the card, not the real 3D scene | Shafin's pick. Lighter on slow phones and simpler to build. |
+| 2026-10-19 | **Kick** = a big, slow shove (about 3× a punch's push, 1.4 s wait), button above Punch on phones, key **G** | Shafin's idea; he picked "big shove" over trip or spin kick, and the column placement. Gives a risky, high-reward move next to the quick punch. |

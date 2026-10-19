@@ -46,6 +46,7 @@ Inspired by a co-op rope game seen in a streamer video (players tied with stripe
 | 👋 Wave | One arm up, waving (you can walk while waving) | 😀 menu | **1** |
 | 💃 Dance | Silly dance for 4 s (stops when you walk) | 😀 menu | **2** |
 | 🎉 Cheer | Both arms up, hopping | 😀 menu | **3** |
+| 🦵 Kick | A **big shove**: slower and shorter reach (1.3 m) than a punch, but hits about 3× as far (~3.5 m) and you can't steer for half a second. Wait 1.4 s between kicks. | Kick button | **G** |
 | 👊 Punch | Throws a punch. Whoever is right in front of you gets a **small shove**: they stumble back ~1.2 m and can't steer for a moment. Standing at an edge = danger 😈 | 👊 button | **F** or **click** |
 
 - An emoji bubble pops up over your head while you do an action.

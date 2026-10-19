@@ -294,6 +294,7 @@ const controls = new Controls(canvas, {
   jump: $('#jump'),
   hint: $('#hint'),
   punch: $('#punch'),
+  kick: $('#kick'),
   pull: $('#pull'),
   emote: $('#emote'),
   emoteMenu: $('#emote-menu'),
@@ -480,7 +481,7 @@ renderer.setAnimationLoop(() => {
     const action = controls.consumeAction();
     if (action && myId && game.members.has(myId)) {
       connection.send({ type: 'action', action });
-      if (action === 'punch') sounds.punchSwing();
+      if (action === 'punch' || action === 'kick') sounds.punchSwing();
       else sounds.emote();
     }
     game.update(dt);

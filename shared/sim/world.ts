@@ -4,7 +4,7 @@
 
 import RAPIER from '@dimforge/rapier3d-compat';
 import { BRICK_HEIGHT, moverPose, moverVelocityAt, type BrickDef, type CourseDef, type MoverDef } from '../course';
-import { ACTION_TIME, PUNCH, type ActionKind } from '../actions';
+import { ACTION_TIME, KICK, PUNCH, type ActionKind } from '../actions';
 
 export { RAPIER };
 
@@ -168,6 +168,7 @@ interface PlayerBody {
   /** The fun action going on right now, and for how long (seconds). */
   action: { kind: ActionKind; time: number } | null;
   punchCooldown: number;
+  kickCooldown: number;
   /** Seconds left of stumbling after being punched (no control over your feet). */
   stumble: number;
 }
@@ -271,6 +272,7 @@ export class GameWorld {
       mantle: { x: 0, z: 0, time: 0 },
       action: null,
       punchCooldown: 0,
+      kickCooldown: 0,
       stumble: 0,
     });
   }
@@ -363,6 +365,10 @@ export class GameWorld {
       if (player.punchCooldown > 0) return false;
       player.punchCooldown = PUNCH.cooldown;
     }
+    if (kind === 'kick') {
+      if (player.kickCooldown > 0) return false;
+      player.kickCooldown = KICK.cooldown;
+    }
     player.action = { kind, time: 0 };
     return true;
   }
@@ -371,6 +377,7 @@ export class GameWorld {
   private updateActions() {
     for (const [id, player] of this.players) {
       player.punchCooldown -= TICK;
+      player.kickCooldown -= TICK;
       const action = player.action;
       if (!action) continue;
       const before = action.time;
@@ -380,13 +387,14 @@ export class GameWorld {
         player.action = null;
         continue;
       }
-      if (action.kind === 'punch' && before < PUNCH.hitAt && action.time >= PUNCH.hitAt) this.landPunch(id, player);
+      if (action.kind === 'punch' && before < PUNCH.hitAt && action.time >= PUNCH.hitAt) this.landPunch(id, player, PUNCH);
+      if (action.kind === 'kick' && before < KICK.hitAt && action.time >= KICK.hitAt) this.landPunch(id, player, KICK);
       if (action.time >= ACTION_TIME[action.kind]) player.action = null;
     }
   }
 
   /** 👊 Shoves everyone standing right in front of the puncher. */
-  private landPunch(puncherId: string, puncher: PlayerBody) {
+  private landPunch(puncherId: string, puncher: PlayerBody, hit: typeof PUNCH) {
     const from = puncher.body.translation();
     const aimX = Math.sin(puncher.facing);
     const aimZ = Math.cos(puncher.facing);
@@ -396,15 +404,15 @@ export class GameWorld {
       const dx = to.x - from.x;
       const dz = to.z - from.z;
       const flat = Math.hypot(dx, dz);
-      if (flat > PUNCH.reach || flat < 1e-3 || Math.abs(to.y - from.y) > 1.2) continue;
+      if (flat > hit.reach || flat < 1e-3 || Math.abs(to.y - from.y) > 1.2) continue;
       // Only people in front of you (within a wide cone), not behind.
       if ((dx * aimX + dz * aimZ) / flat < 0.4) continue;
       const v = target.body.linvel();
       target.body.setLinvel(
-        { x: v.x + (dx / flat) * PUNCH.shove, y: Math.max(v.y, PUNCH.hop), z: v.z + (dz / flat) * PUNCH.shove },
+        { x: v.x + (dx / flat) * hit.shove, y: Math.max(v.y, hit.hop), z: v.z + (dz / flat) * hit.shove },
         true,
       );
-      target.stumble = PUNCH.stumble;
+      target.stumble = hit.stumble;
       this.events.push({ kind: 'hit', x: to.x, y: to.y, z: to.z });
       target.action = null;
     }
