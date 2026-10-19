@@ -52,3 +52,6 @@
 | 2026-10-19 | "Hanging" needs **no floor right under your feet** | Otherwise hopping up a step counted as hanging, and bots started "rescuing" mid-jump. |
 | 2026-10-19 | Pushers lowered to **0.8 m** | A tight rope slides over (fair); a loose rope gets dragged (realistic, chaotic). At 1.2 m every rope got dragged off the bridge. |
 | 2026-10-19 | Sounds made by **code synth**, no audio files | Nothing to download or license; tiny. |
+| 2026-10-19 | **MIT license**, © Shafin Ahmed | Shafin's pick: the simplest, most common open-source license. |
+| 2026-10-19 | Commits use Shafin's **GitHub noreply email**; the old history was rewritten before going public | Keeps his Gmail private in a public repo. |
+| 2026-10-19 | Repo is **public** | Step 8 goal: share it so anyone can host a game night. |

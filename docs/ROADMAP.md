@@ -86,7 +86,9 @@
 - [x] Shafin + friends played it ✅ "no glitches left"
 
 ## Step 8 — Share it on GitHub 🚀
-- [ ] Simple README: "how to host a game night in 3 steps"
-- [ ] Open-source license
-- [ ] Screenshots / GIF
-- [ ] Publish the repo
+- [x] Simple README: "how to host a game night in 3 steps" (+ controls, FAQ, how it works)
+- [x] Open-source license (MIT, © Shafin Ahmed)
+- [x] Screenshots (team, course overview, spinning discs, tower) in `docs/images/`
+- [x] Hid Shafin's Gmail from the git history (all commits now use his private GitHub address)
+- [x] Publish the repo — **public** at https://github.com/theshafinahmed/knot-alone with description + topics
+- [ ] (Optional) an animated GIF for the README

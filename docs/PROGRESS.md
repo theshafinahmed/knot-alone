@@ -4,7 +4,8 @@
 
 ## Right now
 
-- **Current step:** Step 7 (polish) is ✅ **done**. Shafin played with friends: "no glitches left". **Next up: Step 8, share it on GitHub (README, license, screenshots, make it public).** Step 5 is still open for one thing: a test with a friend on a *different* internet. See [ROADMAP.md](ROADMAP.md).
+- **Current step:** 🎉 **All 8 roadmap steps are done.** Knot Alone is **public** on GitHub with a README, MIT license and screenshots. What's left is optional: a friend-on-another-internet test (Step 5), maybe an animated GIF, and new ideas (more courses, a "pull" button for humans, own-player prediction if far-away play feels slow).
+- **Step 8 adds:** `README.md` (host a game night in 3 steps, controls, FAQ, how it works), `LICENSE` (MIT), `docs/images/*.jpg`, author/license/repo in `package.json`. Git history rewritten so commits use `228196812+theshafinahmed@users.noreply.github.com` (a local backup branch `backup/before-email-rewrite` has the old history — never push it, it contains the Gmail). Repo set to public with a description and topics.
 - **Step 7 adds:** a **real rope** (chain of links: drapes, lies on the floor, wraps around walls, gets dragged by moving blocks — which drags you), rope **belts + knots** on players, camera that never goes through walls or the floor, clouds kept off the course, flicker fixes, smoothness on bumpy internet, shadows working again, **sounds** (🔊/🔇), **confetti**, 4 new hats (⚔️ 🧶 🍳 🚁), sun + sea of clouds.
 - **Step 6 adds:** the **Sky Course** (6 sections, ~270 m): warm-up → zig-zag bridges → spinning discs + sweeper → sliding stones + pushers → brick maze → tower → finish arch. 5 checkpoints (flags turn gold), 3-2-1-GO, race timer, checkpoint pop-ups, results card (🥇🥈🥉, best time, Play again / Lobby). Moving platforms carry you. The whole team must stand in the finish.
 - **Step 5½ adds:** 👋 wave, 💃 dance, 🎉 cheer, 👊 punch (small shove). Phone: 👊 button left of jump, 😀 above jump opens a menu. Computer: F or click = punch, 1/2/3 = wave/dance/cheer. Emoji bubble over your head.
@@ -12,7 +13,7 @@
 - **What works:** `npm start` builds the page and starts the boss server on port 3000. **The server runs the game now** (physics + bots); phones only send controls and draw. Flow: join screen (name, shirt color, hat) → lobby (everyone stands on the start platform with name tags; host picks rope mode ⛓️ chain / 👥 teams of 3 / 👫 teams of 2, adds 0–5 🤖 bots, presses ▶ Start) → game (each team in its own lane; ropes, catching, climbing, rescues as in Step 3; falling only resets your own team). Host buttons in the game: ↺ restart (key **R**), 🏠 back to lobby. A phone that drops out or reloads gets its character back (it's dead weight while away). Max 6 players (people + bots).
 - **Test hook:** `window.knot` in the browser console gives `controls`, `scene`, `camera`, `connection`, `game`, `myId`, and `freeCam` (set `{x, y, z, lookX, lookY, lookZ}` to look anywhere; `null` = normal camera).
 - **Known rough edges:** your own character waits for the server too (no prediction), so there's a small delay (~0.1–0.2 s). After a reload you tap "Join game" again (name is remembered). The test course has one thin bridge, so in team mode the side lanes have to steer onto it. Bots are clumsy on purpose. Humans can't "pull" a hanging friend yet (only bots can).
-- **Git:** ✅ set up. Private repo at https://github.com/theshafinahmed/knot-alone (branch `main`). Make it public at Step 8.
+- **Git:** ✅ **Public** repo at https://github.com/theshafinahmed/knot-alone (branch `main`). This repo's git config uses Shafin's private GitHub email (noreply) — keep it that way.
 - **Computer setup:** Windows 11, Node.js v24, npm v11, git v2.54 already installed.
 
 ## How to run it
@@ -67,7 +68,6 @@ npm start       # builds the page + starts the server
 ## Open questions (not decided yet)
 
 - Exact obstacle list and order for the 5-minute course (decide in Step 6).
-- Open-source license (MIT is the usual simple pick, decide in Step 8).
 
 ## Session log
 
@@ -89,3 +89,4 @@ npm start       # builds the page + starts the server
 | 2026-10-19 | Shafin: the movement circle works on his phone and the course is good. Step 6 done and pushed. |
 | 2026-10-19 | Step 7 polish. Shafin reported glitches (camera through walls, rope through things, jitter, flicker, clouds blocking the view) and asked for a realistic rope + visible rope ties. Rebuilt the rope as a chain of links with collisions (took several rounds: links tunneling through corners, a sagging chain pulling too early → fixed with straightening + line-of-sight wrap points; false 'hanging' while hopping steps; a test bug where teleport left the rope behind). Added belts/knots, camera collision + floor clearance, cloud placement, flicker fixes, adaptive smoothing, events → sounds + confetti, 4 hats, sun + cloud sea. Found that the phone's course copy was never stepped (no shadows, no camera collision) — fixed. All headless tests + browser checks pass. |
 | 2026-10-19 | Shafin played the polished game with friends: no glitches left. Step 7 done and pushed. |
+| 2026-10-19 | Step 8: README (3-step hosting, controls, FAQ), MIT license (Shafin Ahmed), screenshots captured from the game into `docs/images/`. Before going public: scanned for secrets (none), and rewrote the history to replace Shafin's Gmail with his GitHub noreply address (local backup branch kept, not pushed). Made the repo public with a description and topics. All roadmap steps done. |
