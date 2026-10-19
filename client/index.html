@@ -9,10 +9,19 @@
   </head>
   <body>
     <canvas id="game"></canvas>
+
     <div id="hud">
-      <h1>Knot Alone</h1>
-      <p id="status">Connecting…</p>
+      <span id="logo">Knot Alone</span>
+      <span id="status">Connecting…</span>
     </div>
+
+    <div id="hint">Click to look around · <b>WASD</b> move · <b>Space</b> jump · <b>Esc</b> free mouse</div>
+
+    <div id="joystick"><div id="knob"></div></div>
+    <button id="jump" aria-label="Jump">⤒</button>
+
+    <div id="loading">Loading…</div>
+
     <script type="module" src="./main.ts"></script>
   </body>
 </html>

@@ -6,6 +6,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import zlib from 'node:zlib';
 import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { WebSocketServer, WebSocket } from 'ws';
@@ -49,12 +50,44 @@ const server = http.createServer((req, res) => {
     filePath = path.join(CLIENT_DIR, 'index.html');
   }
 
-  res.writeHead(200, {
-    'Content-Type': MIME[path.extname(filePath)] ?? 'application/octet-stream',
+  const type = MIME[path.extname(filePath)] ?? 'application/octet-stream';
+  const headers: http.OutgoingHttpHeaders = {
+    'Content-Type': type,
     'Cache-Control': filePath.endsWith('index.html') ? 'no-cache' : 'public, max-age=31536000, immutable',
-  });
+    Vary: 'Accept-Encoding',
+  };
+
+  // Squeeze text files before sending (the game code shrinks from ~5 MB to ~1.5 MB).
+  const accepts = String(req.headers['accept-encoding'] ?? '');
+  const encoding = /\bbr\b/.test(accepts) ? 'br' : /\bgzip\b/.test(accepts) ? 'gzip' : null;
+  if (encoding && COMPRESSIBLE.test(type)) {
+    const body = compressed(filePath, encoding);
+    res.writeHead(200, { ...headers, 'Content-Encoding': encoding, 'Content-Length': body.length });
+    res.end(body);
+    return;
+  }
+
+  res.writeHead(200, headers);
   fs.createReadStream(filePath).pipe(res);
 });
+
+const COMPRESSIBLE = /^(text\/|application\/(json|wasm)|image\/svg)/;
+const compressedCache = new Map<string, Buffer>();
+
+/** Squeezes a file once, then remembers the result. */
+function compressed(filePath: string, encoding: 'br' | 'gzip') {
+  const key = `${encoding}:${filePath}`;
+  let body = compressedCache.get(key);
+  if (!body) {
+    const raw = fs.readFileSync(filePath);
+    body =
+      encoding === 'br'
+        ? zlib.brotliCompressSync(raw, { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 9 } })
+        : zlib.gzipSync(raw, { level: 9 });
+    compressedCache.set(key, body);
+  }
+  return body;
+}
 
 // ---------- Job 2: live connection with players ----------
 

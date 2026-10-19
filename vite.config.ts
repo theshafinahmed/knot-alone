@@ -7,7 +7,8 @@ export default defineConfig({
   build: {
     outDir: '../dist/client',
     emptyOutDir: true,
-    // Three.js alone is ~540 kB (~135 kB zipped). That's fine for a game.
-    chunkSizeWarningLimit: 1000,
+    // Three.js (~540 kB) + the Rapier physics engine (~4 MB, it carries its own engine inside).
+    // The server squeezes it to ~1.5 MB before sending. That's fine for a game.
+    chunkSizeWarningLimit: 6000,
   },
 });

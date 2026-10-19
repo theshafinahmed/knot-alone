@@ -19,3 +19,6 @@
 | 2026-10-19 | **Server-authoritative physics** (30 ticks/sec), clients send inputs and draw snapshots | Keeps everyone agreeing on where the rope and players are. The boss decides. |
 | 2026-10-19 | Rope = **max-distance joint + spring**, drawn as a sagging striped tube | Real rope simulation is too heavy and hard to sync. Fake-but-feels-right is the smart move. |
 | 2026-10-19 | **Fun check before multiplayer** (rope test with bots in Step 3) | If the rope isn't fun alone, multiplayer won't save it. |
+| 2026-10-19 | Physics runs at **60 steps/sec** (not 30), and lives in `shared/sim/` | Smoother jumps. Shared code means the server can run the same rules in Step 4 without a rewrite. |
+| 2026-10-19 | Player = **dynamic capsule** with locked rotation, speed set directly (not Rapier's kinematic character controller) | Ropes (joints) can only pull dynamic bodies. Setting speed directly keeps controls snappy. |
+| 2026-10-19 | Keep **rapier3d-compat** + server compression (brotli/gzip) | Works the same in browser and Node with zero setup. ~1.5 MB download after squeezing is OK. |

@@ -16,11 +16,12 @@
 - [x] Put the project in git
 
 ## Step 2 — One blocky guy that runs and jumps 🏃
-- [ ] Blocky character built from boxes
-- [ ] Phone controls: joystick + jump button + drag to look
-- [ ] Computer controls: WASD + space + mouse
-- [ ] Camera follows from behind
-- [ ] Physics: walking, jumping, falling off the edge
+- [x] Blocky character built from boxes
+- [x] Phone controls: joystick + jump button + drag to look
+- [x] Computer controls: WASD + space + mouse
+- [x] Camera follows from behind
+- [x] Physics: walking, jumping, falling off the edge
+- [x] Shafin tries it on his real phone and says if the controls feel good
 
 ## Step 3 — THE ROPE TEST (fun check) 🪢
 - [ ] You + robot buddies tied together with ropes

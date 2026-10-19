@@ -33,7 +33,9 @@
 
 ## How the pieces talk (for developers)
 
-- **Server-authoritative.** The server runs the Rapier physics world at a fixed **30 ticks per second**.
+- **Server-authoritative.** The server runs the Rapier physics world at a fixed **60 steps per second** (`TICK` in `shared/sim/world.ts`).
+- **The physics code lives in `shared/sim/`** so the browser (Steps 2–3, solo) and the server (Step 4+) run the exact same rules. Don't put browser-only or Node-only code there.
+- **Player movement:** a dynamic Rapier capsule with locked rotation (dynamic so ropes can pull it later). We set its sideways speed directly (accelerate toward the joystick direction). Jumping has "coyote time" and a "jump buffer" so it feels forgiving. Ground check = 5 short rays down from the feet.
 - **Clients send inputs** (joystick direction, jump pressed, camera angle) about 30 times per second.
 - **Server sends snapshots** (every player's position, rotation, state; rope endpoints; checkpoint/timer state) about 20–30 times per second.
 - **Clients interpolate**: they draw everyone slightly in the past (~100 ms) and smoothly slide between snapshots, so movement looks smooth even with lag.
@@ -61,6 +63,7 @@
 - Limit the screen sharpness on phones (pixel ratio max ~1.5–2).
 - Brick studs: reuse the same shape many times (instancing), so thousands of studs stay cheap.
 - Target: smooth on a normal mid-range Android phone.
+- **Download size:** the Rapier "compat" package carries its engine inside the JS file, so the game code is ~4.9 MB. The server squeezes it with brotli/gzip to **~1.5 MB** before sending (`server/index.ts`). Switching to the non-compat Rapier package (separate `.wasm` file) is an option later if needed.
 
 ## Planned folder layout
 
