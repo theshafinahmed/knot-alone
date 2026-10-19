@@ -104,6 +104,36 @@ export class GameView {
     if (this.snapshots.length > MAX_SNAPSHOTS) this.snapshots.shift();
   }
 
+  /** Is somebody tied to me hanging off an edge (so I could pull them up)? Drives the Pull button. */
+  needsHelp(myId: string | null) {
+    const me = myId ? this.members.get(myId)?.state : null;
+    if (!me || me.hanging || !me.grounded) return false;
+    return this.ropes.some((rope) => {
+      const other = rope.a.info.id === myId ? rope.b : rope.b.info.id === myId ? rope.a : null;
+      return !!other?.state?.hanging;
+    });
+  }
+
+  private readonly tagSpot = new THREE.Vector3();
+
+  /**
+   * Name tags that are easy on the eyes: a bit smaller and see-through when the camera is close
+   * (so they don't cover the character), and a bit bigger when someone is far away (so you can
+   * still read them).
+   */
+  updateTags(camera: THREE.Camera) {
+    for (const { view } of this.members.values()) {
+      const tag = view.tag;
+      const base = tag?.userData.baseSize as { width: number; height: number } | undefined;
+      if (!tag || !base) continue;
+      tag.getWorldPosition(this.tagSpot);
+      const distance = camera.position.distanceTo(this.tagSpot);
+      const size = distance < 10 ? 0.6 + 0.4 * (distance / 10) : Math.min(2.2, Math.max(1, distance / 16));
+      tag.scale.set(base.width * size, base.height * size, 1);
+      tag.material.opacity = Math.min(1, Math.max(0.35, (distance - 2) / 5));
+    }
+  }
+
   /** Where a player is drawn right now (feet), or null if we don't know yet. */
   positionOf(id: string) {
     const member = this.members.get(id);

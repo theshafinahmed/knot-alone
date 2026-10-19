@@ -16,11 +16,14 @@ import { sounds } from './sounds';
 import { Confetti } from './confetti';
 import { blockZoom } from './no-zoom';
 import { COUNTDOWN, GameWorld, initPhysics } from '../shared/sim/world';
+import { askConfirm, closeConfirm, isConfirmOpen } from './confirm';
+import { ICON_SOUND_OFF, ICON_SOUND_ON } from './icons';
 import type { LobbyPlayer, Phase, ServerMessage } from '../shared/messages';
 
 const $ = <T extends HTMLElement>(selector: string) => document.querySelector<T>(selector)!;
 const canvas = $<HTMLCanvasElement>('#game');
-const statusLabel = $('#status');
+const statusLabel = $('#status-text');
+const statusPill = $('#status');
 
 if (window.matchMedia('(pointer: coarse)').matches) document.body.classList.add('touch');
 blockZoom();
@@ -76,7 +79,7 @@ scene.add(confetti.mesh);
 
 // 🔊 Sound on/off button (remembered on this phone).
 const muteButton = $<HTMLButtonElement>('#mute');
-const showMute = () => (muteButton.textContent = sounds.muted ? '🔇' : '🔊');
+const showMute = () => (muteButton.innerHTML = sounds.muted ? ICON_SOUND_OFF : ICON_SOUND_ON);
 muteButton.addEventListener('click', () => {
   sounds.setMuted(!sounds.muted);
   showMute();
@@ -142,11 +145,13 @@ function sendJoin(look: Look) {
 
 function updateStatus() {
   if (!connection.online) {
-    statusLabel.textContent = '⏳ Connecting…';
+    statusLabel.textContent = 'Connecting…';
+    statusPill.classList.add('connecting');
     return;
   }
   const people = lobbyPlayers.filter((p) => p.online).length;
-  statusLabel.textContent = `✅ ${people} online`;
+  statusLabel.textContent = `${people} online`;
+  statusPill.classList.remove('connecting');
 }
 
 function onMessage(message: ServerMessage) {
@@ -203,20 +208,35 @@ function amHost() {
 function refreshScreens() {
   const playing = phase === 'playing' && !!game;
   document.body.classList.toggle('playing', playing);
-  controls.enabled = playing;
+  controls.enabled = playing && !isConfirmOpen();
+  document.body.classList.toggle('host', playing && amHost());
+  if (!playing) closeConfirm();
   $('#host-panel').classList.toggle('hidden', !(playing && amHost()));
   if (joined && !playing && !joinScreen.isOpen) lobby.show();
   else lobby.hide();
   if (!playing) refreshLineup();
 }
 
-$('#btn-restart').addEventListener('click', () => connection.send({ type: 'restart' }));
-$('#btn-lobby').addEventListener('click', () => connection.send({ type: 'backToLobby' }));
+/** Retry and Lobby end the race for everybody, so the host gets an "Are you sure?" first. */
+async function confirmThenSend(kind: 'restart' | 'backToLobby') {
+  if (isConfirmOpen()) return;
+  const options =
+    kind === 'restart'
+      ? { title: 'Retry the race?', text: 'Everyone goes back to the start.', yes: 'Retry' }
+      : { title: 'Back to the lobby?', text: 'The race ends for everybody.', yes: 'Back to lobby' };
+  controls.enabled = false;
+  const yes = await askConfirm(options);
+  refreshScreens();
+  if (yes && phase === 'playing' && amHost()) connection.send({ type: kind });
+}
+
+$('#btn-restart').addEventListener('click', () => confirmThenSend('restart'));
+$('#btn-lobby').addEventListener('click', () => confirmThenSend('backToLobby'));
 const isTyping = (e: Event) => e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement;
 window.addEventListener('keydown', (e) => {
-  if (e.code === 'KeyR' && !e.repeat && phase === 'playing' && amHost() && !isTyping(e)) {
-    connection.send({ type: 'restart' });
-  }
+  if (e.repeat || phase !== 'playing' || !amHost() || isTyping(e) || isConfirmOpen()) return;
+  if (e.code === 'KeyR') confirmThenSend('restart');
+  else if (e.code === 'KeyL') confirmThenSend('backToLobby');
 });
 
 // Opening/closing the join screen changes what should be shown.
@@ -329,6 +349,8 @@ let jumps = 0;
 let lastInputSent = 0;
 let wasPulling = false;
 const pullBadge = $('#pull-badge');
+const pullButton = $('#pull');
+let pullShown = false;
 
 function sendInput(now: number, force = false) {
   if (!game || !myId || !game.members.has(myId)) return;
@@ -433,6 +455,13 @@ renderer.setAnimationLoop(() => {
     sendInput(now, pulling !== wasPulling); // send pull start/stop right away
     wasPulling = pulling;
     pullBadge.classList.toggle('hidden', !pulling);
+    // The Pull button only shows while a friend on my rope is hanging.
+    const needed = game.needsHelp(myId);
+    if (needed !== pullShown) {
+      pullShown = needed;
+      pullButton.classList.toggle('needed', needed);
+      if (!needed) controls.releasePull(); // the button vanished under a finger: let go
+    }
     const action = controls.consumeAction();
     if (action && myId && game.members.has(myId)) {
       connection.send({ type: 'action', action });
@@ -495,6 +524,7 @@ renderer.setAnimationLoop(() => {
     const below = floors.distanceToFloor(camera.position.x, camera.position.y + 2, camera.position.z, 4);
     if (below !== null) camera.position.y = Math.max(camera.position.y, camera.position.y + 2 - below + 0.8);
     camera.lookAt(cameraTarget);
+    game.updateTags(camera);
   } else {
     // Lobby: the camera looks at everyone lined up, gently swaying. It backs up on narrow screens.
     controls.consumeJump();

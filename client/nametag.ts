@@ -39,7 +39,9 @@ export function createNameTag(name: string, color: number) {
     // depthTest off = you can see your friends' names even behind bricks.
     new THREE.SpriteMaterial({ map: texture, depthTest: false, transparent: true }),
   );
-  sprite.scale.set((TAG_HEIGHT * canvas.width) / canvas.height, TAG_HEIGHT, 1);
+  const width = (TAG_HEIGHT * canvas.width) / canvas.height;
+  sprite.scale.set(width, TAG_HEIGHT, 1);
+  sprite.userData.baseSize = { width, height: TAG_HEIGHT };
   sprite.renderOrder = 10;
   return sprite;
 }

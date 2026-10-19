@@ -26,7 +26,8 @@ function pressable(button: HTMLElement, onPress: () => void) {
   button.addEventListener('pointerleave', release);
 }
 
-const JOYSTICK_RADIUS = 55;
+/** How far the knob travels from the middle of the ring (pixels); full speed at the edge. */
+const JOYSTICK_RADIUS = 42;
 /** You can start a touch this far outside the movement circle and still grab it (pixels). */
 const STICK_GRAB_MARGIN = 40;
 const TOUCH_LOOK_SPEED = 0.006;
@@ -151,6 +152,12 @@ export class Controls {
     const action = this.actionQueued;
     this.actionQueued = null;
     return action;
+  }
+
+  /** Lets go of the pull button (when it disappears while a finger is still on it). */
+  releasePull() {
+    this.pullButton = false;
+    this.ui.pull.classList.remove('pressed');
   }
 
   /** True while the pull button (phone) or the E key (computer) is held. */

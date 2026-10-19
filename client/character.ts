@@ -59,6 +59,8 @@ export class BlockyCharacter {
   private walkCycle = 0;
   private facing = Math.PI;
   private tumble = 0;
+  /** The floating name (null when there's no name). GameView resizes it by distance. */
+  tag: THREE.Sprite | null = null;
   private readonly bubble = new THREE.Sprite(new THREE.SpriteMaterial({ depthTest: false, transparent: true }));
 
   constructor(color: number, options: { hat?: Hat; name?: string; belt?: boolean } = {}) {
@@ -133,6 +135,7 @@ export class BlockyCharacter {
       const tag = createNameTag(options.name, color);
       tag.position.y = 2.65;
       this.root.add(tag);
+      this.tag = tag;
     }
 
     this.bubble.position.y = 3.2;

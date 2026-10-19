@@ -1,6 +1,7 @@
 // The race on screen ⏱️: big "3, 2, 1, GO!", the timer, checkpoint pop-ups and the results card.
 
 import type { LobbyPlayer } from '../shared/messages';
+import { ICON_CHECK, ICON_FLAG, ICON_STOPWATCH } from './icons';
 import { sounds } from './sounds';
 
 const $ = <T extends HTMLElement>(selector: string) => document.querySelector<T>(selector)!;
@@ -57,7 +58,10 @@ export class RaceHud {
 
     // ⏱️ Timer: counts up from GO. Freezes at your finish time.
     const myFinish = mine && mine[1] >= 0 ? mine[1] : null;
-    $('#timer').textContent = myFinish !== null ? `🏁 ${formatTime(myFinish)}` : `⏱️ ${formatTime(raceTime)}`;
+    $('#timer-text').textContent = formatTime(myFinish !== null ? myFinish : raceTime);
+    $('#timer').classList.toggle('done', myFinish !== null);
+    this.showIcon(myFinish !== null);
+    this.showPips(info.checkpointCount - 1, mine ? mine[0] : 0);
 
     // 3, 2, 1, GO!
     let countdown = '';
@@ -78,7 +82,7 @@ export class RaceHud {
     // ✅ Checkpoint pop-up when my team reaches a new one.
     if (mine) {
       if (this.lastCheckpoint >= 0 && mine[0] > this.lastCheckpoint) {
-        this.toast(`✅ Checkpoint ${mine[0]} of ${info.checkpointCount - 1}!`);
+        this.toast(`Checkpoint ${mine[0]} of ${info.checkpointCount - 1}`);
       }
       this.lastCheckpoint = mine[0];
     }
@@ -130,9 +134,37 @@ export class RaceHud {
     $('#results-wait').textContent = allDone ? 'Waiting for the host…' : 'Cheer on the others! 🎉';
   }
 
+  private pipTotal = -1;
+  private pipOn = -1;
+  private flagShown: boolean | null = null;
+
+  /** Stopwatch while racing, flag once my team has finished. */
+  private showIcon(finished: boolean) {
+    if (finished === this.flagShown) return;
+    this.flagShown = finished;
+    const row = $('#timer .timer-row');
+    row.querySelector('svg')?.remove();
+    row.insertAdjacentHTML('afterbegin', finished ? ICON_FLAG : ICON_STOPWATCH);
+  }
+
+  /** One little square per checkpoint; gold up to the one my team reached. */
+  private showPips(total: number, reached: number) {
+    const box = $('#pips');
+    if (total !== this.pipTotal) {
+      this.pipTotal = total;
+      this.pipOn = -1;
+      box.replaceChildren(...Array.from({ length: Math.max(0, total) }, () => document.createElement('i')));
+    }
+    if (reached === this.pipOn) return;
+    this.pipOn = reached;
+    box.setAttribute('aria-label', `${reached} of ${total} checkpoints reached`);
+    [...box.children].forEach((pip, i) => pip.classList.toggle('on', i < reached));
+  }
+
   private toast(text: string) {
     const el = $('#toast');
-    el.textContent = text;
+    el.innerHTML = ICON_CHECK;
+    el.append(text);
     el.classList.remove('hidden', 'pop');
     void el.offsetWidth;
     el.classList.add('pop');

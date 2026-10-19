@@ -10,7 +10,7 @@ body {
   height: 100%;
   overflow: hidden;
   background: #5ec8ff;
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Nunito', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   /* Stop phones from selecting text or zooming when you tap fast. */
   user-select: none;
   -webkit-user-select: none;
@@ -28,74 +28,157 @@ body {
   display: none !important;
 }
 
+/* ---------- Look: toy bricks in the sky (see docs/DECISIONS.md) ---------- */
+
+:root {
+  --navy: #14233f;
+  --navy2: #2c3e63;
+  --yellow: #ffc300;
+  --red: #e63946;
+  --teal: #1f8a7d;
+  --teal-dark: #16675d;
+  --disp: 'Fredoka', 'Nunito', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --body: 'Nunito', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --safe-l: max(24px, env(safe-area-inset-left));
+  --safe-r: max(24px, env(safe-area-inset-right));
+  --safe-b: max(40px, env(safe-area-inset-bottom));
+}
+
 /* ---------- Top bar ---------- */
 
 #hud {
   position: fixed;
-  top: max(12px, env(safe-area-inset-top));
-  left: max(12px, env(safe-area-inset-left));
+  top: max(20px, env(safe-area-inset-top));
+  left: var(--safe-l);
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 16px;
   color: #fff;
   pointer-events: none;
 }
 
 #logo {
-  font-size: 22px;
-  font-weight: 900;
-  -webkit-text-stroke: 1.5px #1d3557;
-  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.25);
+  font: 700 30px var(--disp);
+  -webkit-text-stroke: 7px var(--navy);
+  paint-order: stroke fill;
+  letter-spacing: 0.01em;
+}
+
+#status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: rgba(20, 35, 63, 0.8);
+  font: 800 16px var(--body);
+}
+
+.live {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #3ddc97;
+  box-shadow: 0 0 0 4px rgba(61, 220, 151, 0.28);
+}
+
+#status.connecting .live {
+  background: #ffb703;
+  box-shadow: 0 0 0 4px rgba(255, 183, 3, 0.28);
 }
 
 #mute {
   pointer-events: auto;
-  width: 30px;
-  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
   border: none;
   border-radius: 50%;
-  background: rgba(29, 53, 87, 0.6);
-  font-size: 15px;
+  background: rgba(20, 35, 63, 0.8);
+  color: #fff;
+  box-shadow: 0 4px 0 rgba(20, 35, 63, 0.35);
   cursor: pointer;
-}
-
-#status {
-  padding: 4px 10px;
-  border-radius: 999px;
-  background: rgba(29, 53, 87, 0.6);
-  font-size: 13px;
-  font-weight: 700;
 }
 
 /* ---------- Host buttons in the game (top right) ---------- */
 
 #host-panel {
   position: fixed;
-  top: max(10px, env(safe-area-inset-top));
-  right: max(10px, env(safe-area-inset-right));
+  top: max(20px, env(safe-area-inset-top));
+  right: var(--safe-r);
   display: flex;
-  gap: 6px;
+  gap: 12px;
 }
 
 #host-panel button {
-  min-width: 40px;
-  height: 36px;
-  padding: 0 10px;
-  border: 2px solid rgba(255, 255, 255, 0.8);
-  border-radius: 10px;
-  background: rgba(29, 53, 87, 0.65);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-width: 44px;
+  height: 44px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 14px;
+  background: rgba(20, 35, 63, 0.8);
   color: #fff;
-  font: 700 14px system-ui, sans-serif;
+  box-shadow: 0 4px 0 rgba(20, 35, 63, 0.35);
+  font: 800 15px var(--body);
   touch-action: pan-y; /* "manipulation" would still allow pinch-zoom */
   cursor: pointer;
 }
 
-/* Narrow phones: put the buttons under the logo so they don't overlap. */
+#host-panel button:active {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 rgba(20, 35, 63, 0.35);
+}
+
+/* Narrow phones: sound button top right, host buttons stacked under it, no logo during the race. */
 @media (max-width: 520px) {
-  #host-panel {
-    top: calc(max(10px, env(safe-area-inset-top)) + 40px);
+  #hud {
+    top: max(12px, env(safe-area-inset-top));
     left: max(12px, env(safe-area-inset-left));
-    right: auto;
+    gap: 10px;
+  }
+
+  #logo {
+    font-size: 24px;
+    -webkit-text-stroke: 6px var(--navy);
+  }
+
+  #status {
+    height: 40px;
+    padding: 0 12px;
+    font-size: 14px;
+  }
+
+  #mute {
+    position: fixed;
+    top: max(12px, env(safe-area-inset-top));
+    right: max(12px, env(safe-area-inset-right));
+  }
+
+  body.playing #logo,
+  body.playing #status {
+    display: none;
+  }
+
+  #host-panel {
+    top: calc(max(12px, env(safe-area-inset-top)) + 54px + 52px);
+    right: max(12px, env(safe-area-inset-right));
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  #host-panel button {
+    padding: 0;
+  }
+
+  #host-panel button span {
+    display: none;
   }
 }
 
@@ -408,20 +491,69 @@ button.big.secondary {
 
 #timer {
   position: fixed;
-  top: max(12px, env(safe-area-inset-top));
+  top: max(20px, env(safe-area-inset-top));
   left: 50%;
   transform: translateX(-50%);
-  padding: 6px 14px;
-  border-radius: 999px;
-  background: rgba(29, 53, 87, 0.7);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 22px 11px;
+  border-radius: 22px;
+  background: rgba(20, 35, 63, 0.8);
   color: #fff;
-  font: 900 18px ui-monospace, Consolas, monospace;
   pointer-events: none;
+}
+
+#timer.done {
+  background: var(--teal-dark);
+}
+
+.timer-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+#timer-text {
+  font: 600 28px/1 var(--disp);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Checkpoint progress: one bar piece per checkpoint, gold once your team has been there. */
+#pips {
+  display: flex;
+  gap: 5px;
+}
+
+#pips i {
+  width: 22px;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.4);
+}
+
+#pips i.on {
+  background: var(--yellow);
 }
 
 @media (max-width: 520px) {
   #timer {
-    top: calc(max(12px, env(safe-area-inset-top)) + 80px);
+    top: max(12px, env(safe-area-inset-top));
+    gap: 6px;
+    padding: 7px 18px 9px;
+  }
+
+  #timer svg {
+    display: none;
+  }
+
+  #timer-text {
+    font-size: 26px;
+  }
+
+  #pips i {
+    width: 18px;
   }
 }
 
@@ -431,10 +563,12 @@ button.big.secondary {
   left: 50%;
   transform: translate(-50%, -50%);
   color: #fff;
+  font-family: var(--disp);
   font-size: clamp(80px, 22vw, 160px);
-  font-weight: 900;
-  -webkit-text-stroke: 4px #1d3557;
-  text-shadow: 0 8px 0 rgba(0, 0, 0, 0.25);
+  font-weight: 700;
+  -webkit-text-stroke: 12px var(--navy);
+  paint-order: stroke fill;
+  text-shadow: 0 8px 0 var(--navy);
   pointer-events: none;
 }
 
@@ -443,12 +577,16 @@ button.big.secondary {
   top: 22%;
   left: 50%;
   transform: translateX(-50%);
-  padding: 10px 18px;
-  border-radius: 14px;
-  background: rgba(22, 163, 74, 0.92);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 48px;
+  padding: 0 20px;
+  border-radius: 999px;
+  background: var(--teal);
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.2);
   color: #fff;
-  font-size: 20px;
-  font-weight: 900;
+  font: 700 20px var(--disp);
   white-space: nowrap;
   pointer-events: none;
 }
@@ -554,25 +692,83 @@ button.big.secondary {
   flex: 1;
 }
 
-/* ---------- Computer hint ---------- */
+/* ---------- Computer hint: key caps ---------- */
 
 #hint {
   position: fixed;
-  bottom: 16px;
+  bottom: 28px;
   left: 50%;
   transform: translateX(-50%);
-  padding: 8px 14px;
-  border-radius: 10px;
-  background: rgba(29, 53, 87, 0.65);
-  color: #fff;
-  font-size: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px 22px;
+  width: max-content; /* otherwise it can only use the right half (left: 50%) and wraps */
   max-width: calc(100vw - 32px);
-  text-align: center;
+  padding: 12px 24px;
+  border-radius: 20px;
+  background: rgba(20, 35, 63, 0.8);
+  color: #fff;
+  font: 700 15px var(--body);
   pointer-events: none;
+}
+
+#hint span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  height: 30px;
+  padding: 0 8px;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 3px 0 rgba(20, 35, 63, 0.35);
+  color: var(--navy);
+  font: 800 14px var(--body);
+}
+
+.key-wide {
+  min-width: 64px;
 }
 
 body.touch #hint,
 body:not(.playing) #hint {
+  display: none;
+}
+
+/* "Pulling…" pill: shows while you hold pull (button or E) */
+#pull-badge {
+  position: fixed;
+  left: 50%;
+  bottom: 112px;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 48px;
+  padding: 0 20px;
+  border-radius: 999px;
+  background: var(--teal-dark);
+  color: #fff;
+  font: 800 17px var(--body);
+  pointer-events: none;
+}
+
+body.touch #pull-badge {
+  bottom: auto;
+  top: calc(max(12px, env(safe-area-inset-top)) + 58px);
+}
+
+#pull-badge.hidden,
+body:not(.playing) #pull-badge {
   display: none;
 }
 
@@ -582,17 +778,16 @@ body:not(.playing) #hint {
 #joystick {
   display: none;
   position: fixed;
-  left: max(28px, env(safe-area-inset-left));
-  bottom: max(36px, env(safe-area-inset-bottom));
-  width: 130px;
-  height: 130px;
+  left: var(--safe-l);
+  bottom: var(--safe-b);
+  width: 132px;
+  height: 132px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.22);
-  border: 3px solid rgba(255, 255, 255, 0.7);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+  background: rgba(20, 35, 63, 0.38);
+  box-shadow: inset 0 0 0 4px rgba(255, 255, 255, 0.85);
   pointer-events: none;
-  opacity: 0.8;
-  transition: opacity 0.1s;
+  opacity: 0.9;
+  transition: opacity 0.1s, background 0.1s;
 }
 
 body.touch.playing #joystick {
@@ -601,56 +796,64 @@ body.touch.playing #joystick {
 
 #joystick.active {
   opacity: 1;
+  background: rgba(20, 35, 63, 0.5);
 }
 
 /* Little arrows inside the ring, so it's clear what it's for. */
 #joystick .arrow {
   position: absolute;
-  color: rgba(255, 255, 255, 0.85);
-  font-size: 14px;
-  line-height: 1;
+  color: rgba(255, 255, 255, 0.95);
 }
 
 #joystick .up {
-  top: 6px;
-  left: 50%;
-  transform: translateX(-50%);
+  top: 9px;
+  left: 56px;
 }
 
 #joystick .down {
-  bottom: 6px;
-  left: 50%;
-  transform: translateX(-50%);
+  bottom: 9px;
+  left: 56px;
 }
 
 #joystick .left {
-  left: 8px;
-  top: 50%;
-  transform: translateY(-50%);
+  left: 9px;
+  top: 56px;
 }
 
 #joystick .right {
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
+  right: 9px;
+  top: 56px;
 }
 
-/* First-time hints: "Move" under the circle, "Swipe to look" on the right. */
+#knob {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 66px;
+  height: 66px;
+  margin: -33px 0 0 -33px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 5px 0 rgba(20, 35, 63, 0.25);
+}
+
+/* First-time hints: "Move" above the circle, "Swipe to look" on the right. */
 .touch-hint {
   display: none;
   position: fixed;
-  padding: 5px 12px;
+  height: 34px;
+  padding: 0 14px;
+  align-items: center;
   border-radius: 999px;
-  background: rgba(29, 53, 87, 0.75);
+  background: rgba(20, 35, 63, 0.85);
   color: #fff;
-  font-size: 14px;
-  font-weight: 800;
+  font: 800 14px var(--body);
   pointer-events: none;
   transition: opacity 0.4s;
 }
 
 body.touch.playing .touch-hint {
-  display: block;
+  display: inline-flex;
 }
 
 .touch-hint.gone {
@@ -658,129 +861,153 @@ body.touch.playing .touch-hint {
 }
 
 #hint-move {
-  left: calc(max(28px, env(safe-area-inset-left)) + 65px);
-  bottom: calc(max(36px, env(safe-area-inset-bottom)) + 140px);
+  left: calc(var(--safe-l) + 66px);
+  bottom: calc(var(--safe-b) + 144px);
   transform: translateX(-50%);
 }
 
 #hint-look {
-  right: max(24px, env(safe-area-inset-right));
+  right: var(--safe-r);
   top: 45%;
 }
 
-#knob {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 54px;
-  height: 54px;
-  margin: -27px 0 0 -27px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.85);
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
-}
-
-#jump {
-  display: none;
-  position: fixed;
-  right: max(28px, env(safe-area-inset-right));
-  bottom: max(36px, env(safe-area-inset-bottom));
-  width: 88px;
-  height: 88px;
-  border-radius: 50%;
-  border: 4px solid rgba(255, 255, 255, 0.9);
-  background: rgba(255, 195, 0, 0.85);
-  color: #fff;
-  font-size: 40px;
-  font-weight: 900;
-  box-shadow: 0 5px 0 rgba(0, 0, 0, 0.2);
-  touch-action: none;
-}
-
-#jump.pressed {
-  transform: translateY(3px) scale(0.95);
-  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.2);
-}
-
-body.touch.playing #jump {
-  display: block;
-}
-
-/* Punch (left of jump) and the 😀 fun-actions button (above jump) */
+/* Action buttons: Jump is the big one in the corner and Punch sits right above it. Pull only shows
+   up when a friend is hanging and needs you (big and glowing). Emote lives in the top-right corner,
+   next to the sound button. The right thumb never has to travel far, and the middle stays clear. */
 .round-button {
   display: none;
   position: fixed;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  padding: 0;
+  border: none;
   border-radius: 50%;
-  border: 3px solid rgba(255, 255, 255, 0.9);
-  background: rgba(29, 53, 87, 0.6);
-  font-size: 30px;
-  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.2);
+  color: #fff;
+  box-shadow: 0 6px 0 rgba(0, 0, 0, 0.24), inset 0 0 0 4px rgba(255, 255, 255, 0.85);
   touch-action: none;
 }
 
-.round-button.pressed {
-  transform: translateY(3px) scale(0.95);
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
+body.touch.playing .round-button {
+  display: flex;
 }
 
-#punch {
-  width: 70px;
-  height: 70px;
-  right: calc(max(28px, env(safe-area-inset-right)) + 104px);
-  bottom: max(30px, env(safe-area-inset-bottom));
-  background: rgba(230, 57, 70, 0.8);
-}
-
-/* Pull (hold it): above the 😀 button, away from the movement circle */
-#pull {
-  width: 58px;
-  height: 58px;
-  right: calc(max(28px, env(safe-area-inset-right)) + 15px);
-  bottom: calc(max(36px, env(safe-area-inset-bottom)) + 176px);
-  font-size: 28px;
-  background: rgba(42, 157, 143, 0.8);
-}
-
-/* Small pill that shows while you hold pull (so you can see the key/button registered) */
-#pull-badge {
-  position: fixed;
-  left: 50%;
-  bottom: 28%;
-  transform: translateX(-50%);
-  padding: 8px 16px;
-  border-radius: 999px;
-  background: rgba(42, 157, 143, 0.92);
-  color: #fff;
-  font-weight: 800;
-  pointer-events: none;
-}
-
-#pull-badge.hidden,
-body:not(.playing) #pull-badge {
+/* Pull is hidden until somebody on your rope is hanging. */
+body.touch.playing #pull:not(.needed) {
   display: none;
 }
 
-#emote {
-  width: 58px;
-  height: 58px;
-  right: calc(max(28px, env(safe-area-inset-right)) + 15px);
-  bottom: calc(max(36px, env(safe-area-inset-bottom)) + 104px);
-  font-size: 28px;
+.round-button::after {
+  content: attr(data-label);
+  font: 800 10px var(--body);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  pointer-events: none;
 }
 
-body.touch.playing .round-button {
-  display: block;
+.round-button svg {
+  flex: none;
+}
+
+.round-button.pressed {
+  transform: translateY(4px);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.24), inset 0 0 0 4px rgba(255, 255, 255, 0.85);
+}
+
+#jump {
+  width: 96px;
+  height: 96px;
+  right: var(--safe-r);
+  bottom: var(--safe-b);
+  background: var(--yellow);
+  color: var(--navy);
+}
+
+#jump svg {
+  width: 38px;
+  height: 38px;
+}
+
+#punch {
+  width: 64px;
+  height: 64px;
+  right: calc(var(--safe-r) + 16px);
+  bottom: calc(var(--safe-b) + 108px);
+  background: #d62839;
+}
+
+#pull {
+  width: 84px;
+  height: 84px;
+  right: calc(var(--safe-r) + 6px);
+  bottom: calc(var(--safe-b) + 184px);
+  background: #17766b;
+  animation: pull-call 0.9s ease-in-out infinite;
+}
+
+#punch svg {
+  width: 26px;
+  height: 26px;
+}
+
+#pull svg {
+  width: 32px;
+  height: 32px;
+}
+
+@keyframes pull-call {
+  0%,
+  100% {
+    box-shadow: 0 6px 0 rgba(0, 0, 0, 0.24), inset 0 0 0 4px #fff, 0 0 0 0 rgba(61, 220, 151, 0.6);
+  }
+  50% {
+    box-shadow: 0 6px 0 rgba(0, 0, 0, 0.24), inset 0 0 0 4px #fff, 0 0 0 10px rgba(61, 220, 151, 0);
+  }
+}
+
+#pull.pressed {
+  animation: none;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.24), inset 0 0 0 4px #fff, 0 0 0 6px rgba(61, 220, 151, 0.55);
+}
+
+/* Emote: a small round HUD button under the sound button (top right), with its menu below it. */
+#emote {
+  display: none;
+  position: fixed;
+  top: calc(max(12px, env(safe-area-inset-top)) + 54px);
+  right: max(12px, env(safe-area-inset-right));
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(20, 35, 63, 0.8);
+  color: #fff;
+  box-shadow: 0 4px 0 rgba(20, 35, 63, 0.35);
+  touch-action: none;
+}
+
+body.touch.playing #emote {
+  display: flex;
+}
+
+#emote.pressed {
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 rgba(20, 35, 63, 0.35);
 }
 
 #emote-menu {
   position: fixed;
-  right: calc(max(28px, env(safe-area-inset-right)) + 82px);
-  bottom: calc(max(36px, env(safe-area-inset-bottom)) + 104px);
+  top: calc(max(12px, env(safe-area-inset-top)) + 54px + 44px + 8px);
+  right: max(12px, env(safe-area-inset-right));
   display: flex;
   gap: 8px;
   padding: 6px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.95);
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
 }
 
@@ -789,14 +1016,32 @@ body.touch.playing .round-button {
   height: 50px;
   border: none;
   border-radius: 50%;
-  background: #eef3f8;
-  font-size: 28px;
+  background: #eef5fc;
+  font-size: 26px;
   touch-action: pan-y; /* "manipulation" would still allow pinch-zoom */
 }
 
 #emote-menu.hidden,
 body:not(.playing) #emote-menu {
   display: none;
+}
+
+/* Phone held sideways: the right column would be too tall, so Pull goes to the left of Jump. */
+@media (max-height: 520px) {
+  #pull {
+    right: calc(var(--safe-r) + 96px + 14px);
+    bottom: calc(var(--safe-b) + 4px);
+  }
+
+  #emote {
+    top: calc(max(20px, env(safe-area-inset-top)) + 56px);
+    right: var(--safe-r);
+  }
+
+  #emote-menu {
+    top: calc(max(20px, env(safe-area-inset-top)) + 56px + 44px + 8px);
+    right: var(--safe-r);
+  }
 }
 
 /* ---------- Loading ---------- */
@@ -810,4 +1055,114 @@ body:not(.playing) #emote-menu {
   color: #fff;
   font-size: 28px;
   font-weight: 900;
+}
+
+/* ---------- Host shortcuts and the "Are you sure?" box ---------- */
+
+#host-panel .key {
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+body.touch #host-panel .key {
+  display: none;
+}
+
+#hint .host-only {
+  display: none;
+}
+
+body.host #hint .host-only {
+  display: inline-flex;
+}
+
+@media (max-width: 520px) {
+  #host-panel .key {
+    display: none;
+  }
+}
+
+#confirm {
+  z-index: 20;
+  background: rgba(20, 35, 63, 0.45);
+}
+
+.confirm-card {
+  width: min(460px, 100%);
+  text-align: center;
+}
+
+.confirm-card h2 {
+  font: 700 28px var(--disp);
+}
+
+.confirm-card p {
+  margin-top: 6px;
+  font: 700 17px var(--body);
+  opacity: 0.75;
+}
+
+.confirm-buttons {
+  display: flex;
+  flex-wrap: wrap; /* on a narrow phone the two buttons stack instead of overflowing */
+  gap: 0 12px;
+}
+
+.confirm-buttons button.big {
+  display: flex;
+  flex: 1 1 190px;
+  min-width: 0;
+  padding: 0 14px;
+  white-space: nowrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--disp);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.confirm-buttons .key {
+  min-width: 24px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 6px;
+  background: rgba(20, 35, 63, 0.12);
+  box-shadow: none;
+  font-size: 11px;
+}
+
+body.touch .confirm-buttons .key {
+  display: none;
+}
+
+/* Medium screens (phone held sideways, small windows): drop the big logo during the race so it never runs into the timer. */
+@media (max-width: 900px) {
+  body.playing #logo {
+    display: none;
+  }
+}
+
+/* Narrow phones: sound button sits left of the timer, Emote takes the top-right corner,
+   and the host's Retry / Lobby buttons stack right under Emote. */
+@media (max-width: 520px) {
+  #mute {
+    left: max(12px, env(safe-area-inset-left));
+    right: auto;
+  }
+
+  #emote {
+    top: max(12px, env(safe-area-inset-top));
+  }
+
+  #emote-menu {
+    top: calc(max(12px, env(safe-area-inset-top)) + 44px + 8px);
+  }
+
+  #host-panel {
+    top: calc(max(12px, env(safe-area-inset-top)) + 54px);
+  }
 }
