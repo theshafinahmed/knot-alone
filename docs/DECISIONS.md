@@ -57,3 +57,5 @@
 | 2026-10-19 | Repo is **public** | Step 8 goal: share it so anyone can host a game night. |
 | 2026-10-19 | **Block page zoom in code**, not just in the page settings | iPhones ignore `user-scalable=no`; friends were zooming the screen by accident while playing. |
 | 2026-10-19 | Humans get a **hold-to-pull** button (🪢 / E key) | The rope rule already existed for bots; only the control was missing. Hold (not tap) because pulling is steady reeling-in. |
+| 2026-10-19 | Rope tug avoids pressing hanging players into bricks (sideways under a ceiling, straight up along a wall) | Players dangling under an overhang got pinned and couldn't be pulled up. |
+| 2026-10-19 | Camera **turns itself** when squeezed against a wall for 0.6 s | Some players didn't know they could swing the camera away, and felt stuck. |

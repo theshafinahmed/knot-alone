@@ -359,6 +359,7 @@ joinScreen.show();
   scene,
   camera,
   renderer,
+  floors,
   connection,
   get game() {
     return game;
@@ -378,6 +379,44 @@ const cameraTarget = new THREE.Vector3();
 let snapCamera = true;
 /** How far the camera is from you right now (less than CAMERA_DISTANCE when a wall is in the way). */
 let cameraDistance = CAMERA_DISTANCE;
+/** Closer than this counts as "squeezed" (a brick is right behind you). */
+const SQUEEZED_DISTANCE = 4;
+let squeezedTime = 0;
+let unsqueezeGoal: { yaw: number; pitch: number } | null = null;
+
+/** Shortest turn from angle a to angle b (−π..π). */
+function wrapAngle(angle: number) {
+  return Math.atan2(Math.sin(angle), Math.cos(angle));
+}
+
+/** How far the camera could back away from the player in this direction before hitting something. */
+function clearDistanceAt(yaw: number, pitch: number) {
+  const flat = Math.cos(pitch) * CAMERA_DISTANCE;
+  const to = new THREE.Vector3(
+    cameraTarget.x + Math.sin(yaw) * flat,
+    cameraTarget.y + Math.sin(pitch) * CAMERA_DISTANCE,
+    cameraTarget.z + Math.cos(yaw) * flat,
+  );
+  return floors.hitDistance(cameraTarget, to) ?? CAMERA_DISTANCE;
+}
+
+/** The camera angle with the best view that isn't a big turn away from where you're looking now. */
+function findClearView() {
+  let best: { yaw: number; pitch: number } | null = null;
+  let bestScore = clearDistanceAt(controls.yaw, controls.pitch); // staying put is the baseline
+  for (const turn of [0.5, -0.5, 1, -1, 1.6, -1.6, 2.4, -2.4, Math.PI]) {
+    for (const pitch of [controls.pitch, 0.9, 1.25]) {
+      const yaw = controls.yaw + turn;
+      // Prefer small turns and small tilts: a view this much clearer must be worth the swing.
+      const score = clearDistanceAt(yaw, pitch) - Math.abs(turn) * 0.6 - Math.abs(pitch - controls.pitch) * 1.5;
+      if (score > bestScore + 1.5) {
+        bestScore = score;
+        best = { yaw, pitch };
+      }
+    }
+  }
+  return best;
+}
 
 renderer.setAnimationLoop(() => {
   const dt = Math.min(clock.getDelta(), 0.1);
@@ -425,6 +464,19 @@ renderer.setAnimationLoop(() => {
       if (snapCamera || cameraTarget.distanceTo(goal) > 8) cameraTarget.copy(goal);
       else cameraTarget.lerp(goal, Math.min(1, dt * 12));
       snapCamera = false;
+    }
+    // 📷 Squeezed against a wall for a while (like hanging under a brick)? Turn the camera by itself
+    // to the nearest angle with a clear view, so nobody is stuck staring at a brick.
+    squeezedTime = cameraDistance < SQUEEZED_DISTANCE ? squeezedTime + dt : 0;
+    if (squeezedTime > 0.6) {
+      if (!unsqueezeGoal) unsqueezeGoal = findClearView();
+      if (unsqueezeGoal) {
+        const turn = Math.min(1, dt * 3);
+        controls.yaw += wrapAngle(unsqueezeGoal.yaw - controls.yaw) * turn;
+        controls.pitch += (unsqueezeGoal.pitch - controls.pitch) * turn;
+      }
+    } else if (squeezedTime === 0) {
+      unsqueezeGoal = null;
     }
     // Where the camera wants to be: behind and above you.
     const flat = Math.cos(controls.pitch) * CAMERA_DISTANCE;

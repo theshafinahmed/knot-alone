@@ -588,10 +588,13 @@ export class GameWorld {
 
       // 4) Too long: tug both players along the rope (towards their neighboring link).
       // Each player is pulled towards the nearest wrap point (or straight towards the other player).
-      const firstWrap = rope.wraps.length ? points[rope.wraps[0]] : points[n];
-      const lastWrap = rope.wraps.length ? points[rope.wraps[rope.wraps.length - 1]] : points[0];
-      const ua = direction(points[0], firstWrap);
-      const ub = direction(points[n], lastWrap);
+      // A player dangling UNDER a brick can't be tugged up through it: the tug would just press the
+      // head into the ceiling and pin them there. Then the tug goes sideways, towards the next
+      // bend of the rope (the edge they have to get out from under), instead.
+      const fromA = rope.wraps.map((i) => points[i]).concat(points[n]);
+      const fromB = rope.wraps.map((i) => points[i]).reverse().concat(points[0]);
+      const ua = this.tugDirection(pa, fromA);
+      const ub = this.tugDirection(pb, fromB);
       if (!ua || !ub) continue;
       const va = pa.body.linvel();
       const vb = pb.body.linvel();
@@ -699,6 +702,63 @@ export class GameWorld {
     const dir = scale(sub(b, a), 1 / length);
     // A little shorter than the full line, so links resting on the same surface can "see" each other.
     return !this.world.castRay(new RAPIER.Ray(a, dir), length - 0.05, true, RAPIER.QueryFilterFlags.EXCLUDE_DYNAMIC);
+  }
+
+  /**
+   * Which way the rope tugs a player, given the spots the rope goes through on its way to the other
+   * player (nearest first). Normally straight at the nearest one. If their head is against a
+   * ceiling (hanging under a brick), going up is pointless, so the tug goes sideways instead:
+   * towards the nearest open sky, preferring the way the rope is heading.
+   */
+  private tugDirection(player: PlayerBody, route: Vec3[]): Vec3 | null {
+    const from = player.body.translation();
+    const first = direction(from, route[0]);
+    if (!first || first.y <= 0) return first;
+    if (!this.headBlocked(player)) {
+      // Hanging against a wall: the tug would press you into it, and the wall's friction holds you.
+      // Without the "into the wall" part you slide up along it.
+      const flat = Math.hypot(first.x, first.z);
+      if (flat > 1e-3) {
+        const ray = new RAPIER.Ray(from, { x: first.x / flat, y: 0, z: first.z / flat });
+        if (this.world.castRay(ray, PLAYER.radius + 0.12, true, RAPIER.QueryFilterFlags.EXCLUDE_DYNAMIC)) return { x: 0, y: 1, z: 0 };
+      }
+      return first;
+    }
+    const goal = route[route.length - 1];
+    const wantX = goal.x - from.x;
+    const wantZ = goal.z - from.z;
+    let best: Vec3 | null = null;
+    let bestScore = -Infinity;
+    // Look for open sky above spots 0.8, 2, 3.5 and 5 m away; take the nearest ring that has some.
+    for (const distance of [0.8, 2, 3.5, 5]) {
+      for (let i = 0; i < 8; i++) {
+        const angle = (i * Math.PI) / 4;
+        const dx = Math.cos(angle);
+        const dz = Math.sin(angle);
+        if (this.headBlocked(player, dx * distance, dz * distance)) continue;
+        const score = dx * wantX + dz * wantZ;
+        if (score > bestScore) {
+          bestScore = score;
+          best = { x: dx, y: 0, z: dz };
+        }
+      }
+      if (best) break;
+    }
+    return best ?? first;
+  }
+
+  /** Is something solid right above the head (or above a spot shifted sideways)? 5 short rays up. */
+  private headBlocked(player: PlayerBody, shiftX = 0, shiftZ = 0) {
+    const p = player.body.translation();
+    p.x += shiftX;
+    p.z += shiftZ;
+    const reach = FEET_TO_CENTER + 0.12;
+    const r = PLAYER.radius * 0.7;
+    for (const [ox, oz] of [[0, 0], [r, 0], [-r, 0], [0, r], [0, -r]]) {
+      const ray = new RAPIER.Ray({ x: p.x + ox, y: p.y, z: p.z + oz }, { x: 0, y: 1, z: 0 });
+      if (this.world.castRay(ray, reach, true, RAPIER.QueryFilterFlags.EXCLUDE_DYNAMIC)) return true;
+    }
+    return false;
   }
 
   /** The last spot each rope link was known to be outside of everything. */
