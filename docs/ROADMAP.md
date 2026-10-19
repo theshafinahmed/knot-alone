@@ -24,11 +24,15 @@
 - [x] Shafin tries it on his real phone and says if the controls feel good
 
 ## Step 3 — THE ROPE TEST (fun check) 🪢
-- [ ] You + robot buddies tied together with ropes
-- [ ] Ropes pull, sag and go tight
-- [ ] Falling drags your buddies
-- [ ] Floppy falls
-- [ ] **Shafin plays it and says if it's fun.** If not, fix the rope feel before moving on.
+- [x] You + robot buddies tied together with ropes (1, 2, 3 or 5 bots)
+- [x] Ropes pull, sag and go tight
+- [x] Falling drags your buddies
+- [x] Floppy falls (tumbling, flailing, "starfish" stun after a hard landing)
+- [x] Ropes bend over edges (not through bricks)
+- [x] Catch a falling friend (standing still = feet planted)
+- [x] Hanging: tap jump to climb up, friends on top pull you up, auto-scramble over the edge
+- [x] Lazy bots (dead weight you drag) to test the drag feel
+- [x] **Shafin plays it and says if it's fun.** ✅ He says it's fun!
 
 ## Step 4 — Real friends on the same Wi-Fi 👥
 - [ ] Server becomes the boss (physics runs on the host computer)

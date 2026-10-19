@@ -74,9 +74,9 @@ const server = http.createServer((req, res) => {
 const COMPRESSIBLE = /^(text\/|application\/(json|wasm)|image\/svg)/;
 const compressedCache = new Map<string, Buffer>();
 
-/** Squeezes a file once, then remembers the result. */
+/** Squeezes a file once, then remembers the result (until the file changes). */
 function compressed(filePath: string, encoding: 'br' | 'gzip') {
-  const key = `${encoding}:${filePath}`;
+  const key = `${encoding}:${filePath}:${fs.statSync(filePath).mtimeMs}`;
   let body = compressedCache.get(key);
   if (!body) {
     const raw = fs.readFileSync(filePath);

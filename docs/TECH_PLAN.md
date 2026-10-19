@@ -45,10 +45,17 @@
 
 ## The rope (the hardest part) 🪢
 
-- A real wiggly rope is too heavy for phones and too hard to keep in sync.
-- **v1 plan:** each rope = a Rapier **rope joint** (a max-distance limit) between two player bodies, plus a gentle spring pull when it's stretched. It acts like a **stretchy leash**.
-- The rope you **see** is just drawn: a curved tube between the two players that sags when loose and goes straight when tight. The drawing doesn't affect physics.
+- A real wiggly rope is too heavy for phones and too hard to keep in sync. So the rope is a few simple rules, all in `shared/sim/world.ts` (`updateRopes`):
+  1. **Safety net:** a Rapier **rope joint** (max 4 m, straight line) between the two body centers. It never lets the rope stretch past full length.
+  2. **Bending over edges:** the straight joint goes *through* bricks like a ghost. So every tick we check if a brick is between two tied players. If yes, we find the edge (walk along the brick top until the floor ends) and use path length = player→edge + edge→player. If that's too long, we tug both players' velocities toward the edge (max 5 m/s, equal weights). The lower player aims slightly *out past* the edge so they slide out from under the brick and up its side.
+  3. **Shortening:** each rope has a `current` length. A hanging player tapping jump climbs (shortens by 0.6 m per tap). A friend standing on top with `pull` reels it in (1.6 m/s). With nobody hanging, it lets back out to full length.
+  4. **Hanging** = in the air, rope nearly tight, below the edge or below a friend *who is standing on something* (otherwise two falling players would climb each other into the sky).
+  5. **Scramble (mantle):** when a hanging player's feet get within 1.5 m of the edge top, they're pushed over the edge for up to 0.4 s, and stop as soon as there's floor under them.
+- **Catching a friend:** a grounded player with no input "plants their feet" (brace accel 160 vs normal 60), so one standing player can hold one hanging player.
+- No air brakes: in the air with no input you keep your momentum. Hanging players get a little air drag so swinging calms down.
+- The rope you **see** (`client/rope.ts`) is just a drawing: a striped tube that sags when loose, rests on the floor instead of sinking into it, and goes over the edge point when bent. It doesn't affect physics.
 - The rope look matches the video: red-and-white stripes.
+- **Testing tip:** the physics can run without a screen. Quick test scripts that drive `GameWorld` + `BotBrain` with `npx tsx` and print positions were how the rope rules got tuned. Write new ones for new rope problems.
 
 ## Characters
 

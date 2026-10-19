@@ -2,6 +2,7 @@
 
 import * as THREE from 'three';
 
+const MIDDLE = 0.95; // middle of the body, from the feet
 const SKIN = 0xffcc4d;
 const PANTS = 0x264653;
 
@@ -19,6 +20,8 @@ function limb(width: number, length: number, material: THREE.Material) {
 
 export class BlockyCharacter {
   readonly root = new THREE.Group();
+  /** Spins/tilts the whole body around its middle (for floppy falls and lying flat). */
+  private readonly pivot = new THREE.Group();
   private readonly body = new THREE.Group();
   private readonly leftArm: THREE.Group;
   private readonly rightArm: THREE.Group;
@@ -26,13 +29,17 @@ export class BlockyCharacter {
   private readonly rightLeg: THREE.Group;
   private walkCycle = 0;
   private facing = Math.PI;
+  private tumble = 0;
 
   constructor(color: number) {
     const shirt = mat(color);
     const skin = mat(SKIN);
     const pants = mat(PANTS);
 
-    this.root.add(this.body);
+    this.pivot.position.y = MIDDLE;
+    this.body.position.y = -MIDDLE;
+    this.pivot.add(this.body);
+    this.root.add(this.pivot);
 
     // Legs (hip at 0.75 m)
     this.leftLeg = limb(0.36, 0.75, pants);
@@ -87,7 +94,17 @@ export class BlockyCharacter {
    */
   update(
     dt: number,
-    state: { x: number; y: number; z: number; vx: number; vy: number; vz: number; grounded: boolean; facing: number },
+    state: {
+      x: number;
+      y: number;
+      z: number;
+      vx: number;
+      vy: number;
+      vz: number;
+      grounded: boolean;
+      stunned: boolean;
+      facing: number;
+    },
     floorDistance: number | null,
   ) {
     this.root.position.set(state.x, state.y, state.z);
@@ -102,8 +119,19 @@ export class BlockyCharacter {
     // Negative x-rotation swings a limb forward.
     let leftArm: number, rightArm: number, leftLeg: number, rightLeg: number;
     let armsOut = 0;
+    // Whole-body tilt: positive = leaning forward. And how high the middle of the body sits.
+    let tilt = 0;
+    let middle = MIDDLE;
 
-    if (state.grounded) {
+    if (state.stunned) {
+      // Flat on the back like a starfish ⭐ after a hard landing.
+      leftArm = rightArm = 0;
+      leftLeg = rightLeg = 0;
+      armsOut = 1.2;
+      tilt = -Math.PI / 2;
+      middle = 0.25;
+      this.tumble = 0;
+    } else if (state.grounded) {
       // Walking: swing arms and legs, faster when running.
       this.walkCycle += dt * speed * 1.6;
       const swing = Math.sin(this.walkCycle) * Math.min(speed / 7, 1) * 0.9;
@@ -119,13 +147,26 @@ export class BlockyCharacter {
       leftLeg = Math.sin(t * 1.3) * 0.6;
       rightLeg = -leftLeg;
       armsOut = 0.4;
+      // ...and slowly tumble head over heels.
+      this.tumble += dt * Math.min(6, -state.vy * 0.25);
+      tilt = this.tumble;
     } else {
-      // Jumping: arms forward and up, one leg tucked.
+      // Jumping / dangling: arms forward and up, one leg tucked, leaning with the motion.
       leftArm = rightArm = -1.1;
       leftLeg = 0.3;
       rightLeg = -0.6;
       armsOut = 0.25;
+      tilt = Math.max(-0.6, Math.min(0.6, speed * 0.06 - state.vy * 0.03));
+      this.tumble = 0;
     }
+
+    if (this.tumble === 0) {
+      // Coming out of a tumble: take the short way back to upright.
+      this.pivot.rotation.x = Math.atan2(Math.sin(this.pivot.rotation.x), Math.cos(this.pivot.rotation.x));
+    }
+    const bodyEase = Math.min(1, dt * 10);
+    this.pivot.rotation.x += (tilt - this.pivot.rotation.x) * bodyEase;
+    this.pivot.position.y += (middle - this.pivot.position.y) * bodyEase;
 
     const ease = Math.min(1, dt * 18);
     const blend = (limb: THREE.Group, axis: 'x' | 'z', target: number) => {
@@ -139,7 +180,8 @@ export class BlockyCharacter {
     blend(this.rightLeg, 'x', rightLeg);
 
     // A little bounce while running.
-    this.body.position.y = state.grounded ? Math.abs(Math.sin(this.walkCycle)) * 0.06 * Math.min(speed / 7, 1) : 0;
+    const bounce = state.grounded && !state.stunned ? Math.abs(Math.sin(this.walkCycle)) * 0.06 * Math.min(speed / 7, 1) : 0;
+    this.body.position.y = -MIDDLE + bounce;
 
     // Shadow sits on the floor, and gets smaller and fainter the higher we are.
     if (floorDistance === null || floorDistance > 30) {

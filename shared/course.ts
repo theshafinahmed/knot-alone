@@ -35,7 +35,8 @@ export const BRICK_HEIGHT = 1.2;
 
 /** A small test playground for Step 2: walk, jump gaps, climb steps. */
 export const TEST_COURSE: CourseDef = {
-  spawn: { x: 0, y: 1, z: 4 },
+  // Players line up backwards (+z) from here, so there's room for 6 on the start platform.
+  spawn: { x: 0, y: 1, z: -5 },
   fallLimit: -40,
   bricks: [
     // Starting area

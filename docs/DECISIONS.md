@@ -22,3 +22,8 @@
 | 2026-10-19 | Physics runs at **60 steps/sec** (not 30), and lives in `shared/sim/` | Smoother jumps. Shared code means the server can run the same rules in Step 4 without a rewrite. |
 | 2026-10-19 | Player = **dynamic capsule** with locked rotation, speed set directly (not Rapier's kinematic character controller) | Ropes (joints) can only pull dynamic bodies. Setting speed directly keeps controls snappy. |
 | 2026-10-19 | Keep **rapier3d-compat** + server compression (brotli/gzip) | Works the same in browser and Node with zero setup. ~1.5 MB download after squeezing is OK. |
+| 2026-10-19 | Ropes **bend over brick edges** (our own rule on top of Rapier's straight rope joint) | The straight joint went through bricks, so hanging players swung under platforms and could never be pulled up. |
+| 2026-10-19 | **Climbing = shortening the rope** (tap jump while hanging). Rescuers **plant their feet and reel in** instead of walking away | Jumping up a fixed-length rope just drops you back down. Walking away to pull flung players across thin bridges. |
+| 2026-10-19 | Standing still = **braced** (much stronger grip). No air brakes when not pressing anything | Catching a falling friend is the best moment in a rope game. It needs to be possible. |
+| 2026-10-19 | You can only hang from an **edge** or a **friend who is standing** | Without this, two falling players "climbed" each other up into the sky. |
+| 2026-10-19 | Keep players able to **stand on each other's heads** | It happens naturally after a rescue and it's funny. |

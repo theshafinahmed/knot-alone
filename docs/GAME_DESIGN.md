@@ -30,9 +30,19 @@ Inspired by a co-op rope game seen in a streamer video (players tied with stripe
 - A timer shows how long your team takes. Beat your best time.
 - In team modes, the first team to the finish wins.
 
+## Hanging, catching and climbing 🧗
+
+- If you fall off an edge, your rope can catch you and you **hang** off the side.
+- A friend who is **standing still plants their feet** and can hold you.
+- **Tap jump while hanging** to climb up the rope, hand over hand.
+- A friend on top can **pull you up** (bots do this automatically; a "pull" button for humans may come later).
+- When you get close to the top, you **scramble over the edge** automatically.
+- Land too hard (big fall) and you lie flat like a starfish for about 1 second. ⭐
+
 ## Falling
 
 - Falling off the platforms = your **whole team goes back to the last checkpoint** they reached.
+- Until checkpoints exist (Step 6), the team goes back to the start.
 - Checkpoints are glowing pads along the course. When any team member touches one, the team saves there.
 
 ## The course (first version)

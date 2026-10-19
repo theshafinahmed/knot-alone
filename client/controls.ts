@@ -12,7 +12,7 @@ export class Controls {
   /** Camera angle around the player (radians). */
   yaw = 0;
   /** Camera angle above the player (radians). */
-  pitch = 0.35;
+  pitch = 0.6; // high enough to see over the buddies behind you
 
   private keys = new Set<string>();
   private jumpQueued = false;
