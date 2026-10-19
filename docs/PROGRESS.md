@@ -4,7 +4,7 @@
 
 ## Right now
 
-- **Current step:** Step 1 (Empty project that runs) is **almost done**. The only thing left is for Shafin to open it on his phone on the same Wi-Fi. **After that: Step 2, one blocky guy that runs and jumps.** See [ROADMAP.md](ROADMAP.md).
+- **Current step:** Step 1 (Empty project that runs) is ✅ **done**, including a real phone test on the same Wi-Fi (player count went to 2). **Next up: Step 2, one blocky guy that runs and jumps.** See [ROADMAP.md](ROADMAP.md).
 - **What works:** `npm start` builds the game page and starts the server on port 3000. The page shows a blue sky, clouds, a red brick platform with yellow bricks and a blue bridge, a slowly circling camera, and a "✅ Connected · N players online" badge (live WebSocket to the server). Checked on desktop and phone-sized screens with no console errors.
 - **Git:** ✅ set up. Private repo at https://github.com/theshafinahmed/knot-alone (branch `main`). Make it public at Step 8.
 - **Computer setup:** Windows 11, Node.js v24, npm v11, git v2.54 already installed.
@@ -43,4 +43,4 @@ npm start       # builds the page + starts the server
 | Date | What happened |
 |---|---|
 | 2026-10-19 | Watched the inspiration video. Planned the whole game with Shafin: design, tools, hosting (own computer + Cloudflare tunnel), roadmap. Created the docs folder. Made a private GitHub repo. |
-| 2026-10-19 | Step 1: set up the project (Vite + Three.js page, Node + ws server, shared folder). `npm start` works and shows the brick platform in the sky with a live server connection. Waiting on a phone test. |
+| 2026-10-19 | Step 1: set up the project (Vite + Three.js page, Node + ws server, shared folder). `npm start` works and shows the brick platform in the sky with a live server connection. Shafin tested it on his phone over Wi-Fi: works, count went to 2. Step 1 done. |

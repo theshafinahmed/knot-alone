@@ -12,7 +12,7 @@
 ## Step 1 — Empty project that runs 🧱
 - [x] Set up folders (`client/`, `server/`, `shared/`) and `package.json`
 - [x] `npm start` starts the server and shows a blue sky + one brick platform
-- [ ] Open it on a phone on the **same Wi-Fi** and see it work
+- [x] Open it on a phone on the **same Wi-Fi** and see it work
 - [x] Put the project in git
 
 ## Step 2 — One blocky guy that runs and jumps 🏃
