@@ -32,3 +32,7 @@
 | 2026-10-19 | Players remembered by a **secret token on the phone** | A phone that drops off Wi-Fi or reloads gets its character back mid-game. |
 | 2026-10-19 | Host can add **robot buddies** in the lobby | Lets Shafin test alone, and fills teams when there are fewer friends. |
 | 2026-10-19 | People who drop out mid-game become **dead weight** until they return | Removing them would break the rope chain for everyone else. |
+| 2026-10-19 | Use the **`cloudflared` npm package** to get and run Cloudflare's official tunnel program | One `npm install` and it just works on Windows/Mac/Linux. Nobody has to install anything by hand. |
+| 2026-10-19 | Print a **QR code** in the terminal + an **Invite card** in the lobby | Shafin wants to run the server and play from his phone without touching the computer. Scan and play. |
+| 2026-10-19 | The host is **whoever joins first**, not the computer | The computer is just the field; the captain can be on a phone. Tip printed at startup. |
+| 2026-10-19 | A tunnel problem **never crashes the server** | Wi-Fi play should keep working even with no internet. |

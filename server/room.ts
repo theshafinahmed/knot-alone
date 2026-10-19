@@ -9,6 +9,7 @@ import {
   FLAG_HANGING,
   FLAG_STUNNED,
   type ClientMessage,
+  type Invite,
   type LobbyPlayer,
   type Phase,
   type ServerMessage,
@@ -60,11 +61,20 @@ export class Room {
   private game: Game | null = null;
   private nextId = 1;
   private loop: NodeJS.Timeout | null = null;
+  private invite: Invite | null = null;
+
+  /** The link friends can use to join (shown in everyone's lobby). */
+  setInvite(invite: Invite) {
+    this.invite = invite;
+    this.sendLobby();
+  }
 
   // ---------- Connections ----------
 
   connect(socket: WebSocket) {
     let person: Person | null = null;
+    // Show the lobby right away, so you can see who's here before joining.
+    this.send(socket, this.lobbyMessage());
 
     socket.on('message', (data) => {
       let message: ClientMessage;
@@ -197,17 +207,22 @@ export class Room {
     }));
   }
 
-  private sendLobby() {
-    // Keep the settings valid as people come and go.
-    this.botCount = Math.min(this.botCount, MAX_PLAYERS - this.people.size);
-    if (!modeFits(this.mode, this.people.size + this.botCount)) this.mode = 'chain';
-    this.broadcast({
+  private lobbyMessage(): ServerMessage {
+    return {
       type: 'lobby',
       phase: this.phase,
       players: this.lobbyPlayers(),
       mode: this.mode,
       bots: this.botCount,
-    });
+      invite: this.invite,
+    };
+  }
+
+  private sendLobby() {
+    // Keep the settings valid as people come and go.
+    this.botCount = Math.min(this.botCount, MAX_PLAYERS - this.people.size);
+    if (!modeFits(this.mode, this.people.size + this.botCount)) this.mode = 'chain';
+    this.broadcast(this.lobbyMessage());
   }
 
   // ---------- The game ----------

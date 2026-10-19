@@ -235,7 +235,7 @@ button.big:disabled {
   opacity: 0.6;
 }
 
-#edit-look {
+.small-button {
   height: 32px;
   padding: 0 10px;
   border: 2px solid #d0dbe8;
@@ -329,6 +329,61 @@ button.big:disabled {
   text-align: center;
   font-size: 20px;
   font-weight: 900;
+}
+
+/* ---------- Invite card ---------- */
+
+.invite-card {
+  text-align: center;
+}
+
+.invite-card h2 {
+  font-size: 26px;
+  font-weight: 900;
+}
+
+#invite-where {
+  margin: 6px 0 12px;
+  font-weight: 700;
+  opacity: 0.75;
+}
+
+#invite-qr {
+  width: 220px;
+  height: 220px;
+  border-radius: 12px;
+  background: #fff;
+}
+
+#invite-link {
+  margin-top: 8px;
+  font: 700 14px ui-monospace, Consolas, monospace;
+  word-break: break-all;
+  user-select: all;
+}
+
+.invite-buttons {
+  display: flex;
+  gap: 10px;
+}
+
+.invite-buttons button.big {
+  flex: 1;
+}
+
+button.big.secondary {
+  background: #e3f2fd;
+  box-shadow: 0 5px 0 #b6d7f0;
+}
+
+.close-button {
+  margin-top: 14px;
+  border: none;
+  background: none;
+  color: #1d3557;
+  font: 800 15px system-ui, sans-serif;
+  opacity: 0.6;
+  cursor: pointer;
 }
 
 #waiting {

@@ -9,6 +9,7 @@ import { Controls } from './controls';
 import { Connection, playerToken } from './connection';
 import { GameView } from './game-view';
 import { JoinScreen, LobbyPanel, type Look } from './lobby';
+import { InviteCard } from './invite';
 import { TEST_COURSE } from '../shared/course';
 import { GameWorld, initPhysics } from '../shared/sim/world';
 import type { LobbyPlayer, Phase, ServerMessage } from '../shared/messages';
@@ -112,6 +113,7 @@ function onMessage(message: ServerMessage) {
       lobbyPlayers = message.players;
       phase = message.phase;
       lobby.update(message.players, myId, message.mode, message.bots);
+      invite.set(message.invite);
       if (phase === 'lobby' && game) endGame();
       refreshScreens();
       updateStatus();
@@ -131,6 +133,9 @@ const joinScreen = new JoinScreen((look) => {
   myLook = look;
   sendJoin(look);
 });
+
+const invite = new InviteCard();
+$('#open-invite').addEventListener('click', () => invite.show());
 
 const lobby = new LobbyPanel({
   setMode: (mode) => connection.send({ type: 'setup', mode }),

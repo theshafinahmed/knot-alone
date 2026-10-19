@@ -9,9 +9,14 @@ import path from 'node:path';
 import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 import { WebSocketServer } from 'ws';
-import { PORT, SOCKET_PATH } from '../shared/config';
+import { PORT as DEFAULT_PORT, SOCKET_PATH } from '../shared/config';
 import { initPhysics } from '../shared/sim/world';
 import { Room } from './room';
+import { openTunnel, type TunnelHandle } from './tunnel';
+import QRCode from 'qrcode';
+
+/** The door number. Change it with the PORT setting, e.g. `PORT=3100 npm start`. */
+const PORT = Number(process.env.PORT) || DEFAULT_PORT;
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const CLIENT_DIR = path.resolve(ROOT, '../dist/client');
@@ -111,15 +116,85 @@ function wifiAddresses(): { name: string; address: string }[] {
   return found.sort((a, b) => Number(isWifi(b.name)) - Number(isWifi(a.name)));
 }
 
-server.listen(PORT, '0.0.0.0', () => {
+/** Prints a QR code in the terminal: scan it with a phone camera to open the link. */
+async function printQr(url: string) {
+  const qr = await QRCode.toString(url, { type: 'terminal', small: true });
+  console.log(qr.replace(/^/gm, '   '));
+}
+
+// `npm run start:local` = Wi-Fi only, no internet tunnel.
+const localOnly = process.argv.includes('--local');
+
+// The door (port) is already taken — almost always because Knot Alone is already running.
+server.on('error', (error: NodeJS.ErrnoException) => {
+  if (error.code === 'EADDRINUSE') {
+    console.error('');
+    console.error(`❌ Knot Alone can't start: door ${PORT} is already in use.`);
+    console.error('   Is the game already running in another window? Close that one first (Ctrl+C), then try again.');
+    console.error('');
+    process.exit(1);
+  }
+  throw error;
+});
+wss.on('error', () => {}); // the same error also reaches the WebSocket server; it's handled above
+
+server.listen(PORT, '0.0.0.0', async () => {
+  const wifi = wifiAddresses();
+  const wifiUrl = wifi[0] ? `http://${wifi[0].address}:${PORT}` : null;
+
   console.log('');
   console.log('🪢  Knot Alone server is running!');
   console.log('');
   console.log(`   On this computer:   http://localhost:${PORT}`);
-  for (const { name, address } of wifiAddresses()) {
+  for (const { name, address } of wifi) {
     console.log(`   On the same Wi-Fi:  http://${address}:${PORT}   (${name})`);
   }
   console.log('');
+  console.log('   Tip: join from your PHONE first to be the host 👑 (the first person to join is the host).');
   console.log('   Press Ctrl+C to stop.');
   console.log('');
+
+  if (wifiUrl) room.setInvite({ url: wifiUrl, anywhere: false });
+
+  if (localOnly || !wifiUrl) {
+    if (wifiUrl) {
+      console.log('📱 Scan this with your phone camera (same Wi-Fi):');
+      await printQr(wifiUrl);
+    }
+    return;
+  }
+
+  console.log('🚇 Opening the internet tunnel so friends anywhere can join… (takes a few seconds)');
+  tunnel = await openTunnel(
+    PORT,
+    async (url) => {
+      room.setInvite({ url, anywhere: true });
+      console.log('');
+      console.log('🌍 Friends ANYWHERE in the world can join with this link:');
+      console.log('');
+      console.log(`   👉  ${url}`);
+      console.log('');
+      console.log('   Send it on WhatsApp / Discord, or scan this with your phone camera:');
+      await printQr(url);
+      console.log('   (The link changes every time you restart the server.)');
+      console.log("   If a phone says \"site can't be reached\", wait a minute and try again, or try mobile data.");
+      console.log('');
+    },
+    async (reason) => {
+      console.log('');
+      console.log(`⚠️  Couldn't open the internet tunnel: ${reason}`);
+      console.log('   Friends on the same Wi-Fi can still join. Scan this with your phone camera:');
+      await printQr(wifiUrl);
+    },
+  );
 });
+
+let tunnel: TunnelHandle | null = null;
+
+// Close the tunnel nicely when the server stops (Ctrl+C).
+for (const signal of ['SIGINT', 'SIGTERM'] as const) {
+  process.on(signal, () => {
+    tunnel?.stop();
+    process.exit(0);
+  });
+}

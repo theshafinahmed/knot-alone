@@ -40,7 +40,8 @@
       <div class="sheet-head">
         <b>Lobby</b>
         <span id="lobby-count"></span>
-        <button id="edit-look" type="button">✏️ My look</button>
+        <button id="open-invite" class="small-button" type="button">📨 Invite</button>
+        <button id="edit-look" class="small-button" type="button">✏️ My look</button>
       </div>
       <ul id="lobby-list"></ul>
 
@@ -56,6 +57,21 @@
         <button id="start-button" class="big" type="button">▶ Start</button>
       </div>
       <p id="waiting" class="hidden">Waiting for the host to press Start…</p>
+    </div>
+
+    <!-- Invite friends: QR code + link to share -->
+    <div id="invite" class="screen hidden">
+      <div class="card invite-card">
+        <h2>Invite friends 📨</h2>
+        <p id="invite-where"></p>
+        <canvas id="invite-qr" width="220" height="220"></canvas>
+        <p id="invite-link"></p>
+        <div class="invite-buttons">
+          <button id="invite-share" class="big" type="button">📤 Share</button>
+          <button id="invite-copy" class="big secondary" type="button">📋 Copy</button>
+        </div>
+        <button id="invite-close" class="close-button" type="button">Close</button>
+      </div>
     </div>
 
     <!-- In the game: host buttons -->

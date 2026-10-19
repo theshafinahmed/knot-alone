@@ -45,9 +45,13 @@
 - [x] Shafin tests it with real phones on the same Wi-Fi ✅ works
 
 ## Step 5 — Friends from anywhere in the world 🌍
-- [ ] `npm start` opens a Cloudflare Quick Tunnel automatically
-- [ ] Prints the link to share
-- [ ] Test with a friend on a different internet connection
+- [x] `npm start` opens a Cloudflare Quick Tunnel automatically
+- [x] Prints the link to share **+ a QR code** to scan with your phone
+- [x] 📨 Invite button in the lobby: QR code + link + Share/Copy
+- [x] `npm run start:local` = Wi-Fi only (no tunnel)
+- [x] Claude checked: the game loads and connects through the tunnel (https + secure WebSocket)
+- [x] Shafin restarted `npm start`: the printed link works right away
+- [ ] Test with a friend on a different internet connection (mobile data counts!)
 - [ ] If controls feel slow for far-away friends → add own-player prediction
 
 ## Step 6 — The real course 🏗️
