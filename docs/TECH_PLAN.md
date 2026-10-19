@@ -82,6 +82,16 @@
 - The phone's floors-only world for shadows leaves out moving parts (no shadow on discs — small cosmetic thing).
 - **Testing:** headless test scripts check spawns at every checkpoint, disc riding, sweeper/pusher pushing, checkpoint order, finish rule and countdown. An autopilot (+ bot) runs warm-up, bridges, maze and tower. The page has a test-only `knot.freeCam` to look at any part of the course.
 
+## Rooms: course pieces that snap together (Step 10e) 🧩
+
+- **What a room is** (`shared/rooms/`): a small piece of course built in its own little map. Door in = (0, 0, 0), the front edge of the pad you stand on. It goes towards −z. It says where its door out is (the back edge of the next pad). So any room fits after any room.
+- **How hard dial:** every room is built with a `level` from 0 (gentlest) to 1 (hardest): wider → thinner paths, slower → faster parts, more hammers, stronger wind. Each room has a danger **cost** at level 0 and at level 1.
+- **Rules can't be broken:** rooms make gaps, steps and widths only through `room.gap()`, `room.step()`, `room.width()`, which clamp to `RULES` (gap ≤ 2.5 m, step ≤ 1.2 m, path ≥ 2 m). Only the elevator room goes higher (it lifts you).
+- **The dice** (`rng.ts`): a seeded random-number maker. Same seed = same numbers on the server and every phone. Rooms use it to mirror left/right, pick the maze holes, start moving parts at different times.
+- **Combos** (`applyCombo`): `icy` (plain floors → ice), `windy` (gusty side wind over the room), `belted` (long bridges → treadmills). Each room lists which combos make sense. A combo adds +2 cost.
+- **Snapping together** (`assembleCourse`): start platform → room → 8×8 pad with a checkpoint → room → … → finish platform. 10f will choose the rooms with the dice and the difficulty budget, then call this.
+- **Room Gallery** (`npm start -- --course=gallery`): every room once at middle level + 3 combo examples, for trying them out.
+
 ## Fun actions (wave, punch, dance, cheer)
 
 - List and numbers live in `shared/actions.ts` (how long each lasts, punch reach/strength/cooldown).

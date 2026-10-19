@@ -79,3 +79,10 @@
 | 2026-10-19 | Ice and conveyor bricks have **no studs** (ice = smooth pale blue, conveyor = dark with yellow arrows) | You can tell at a glance that the floor is different before you step on it. |
 | 2026-10-19 | Hammers knock you by a **hit check** (head speed ≥ 2.5 m/s and touching you → shove 13 m/s along the swing), not just by the physics push | Players' speed is set by our own code every tick, so a pure physics bump would feel weak and random. |
 | 2026-10-19 | Wind: standing still (feet planted) holds you almost fully; walking gets 50 % of the wind; in the air you get blown | Gives a clear skill: stop in the gusts, walk in the calm, don't jump in a gust. |
+| 2026-10-19 | Random world **length: host picks** Short (~2 min) / Normal (~4 min) / Long (~6 min) in the lobby | Shafin's pick. |
+| 2026-10-19 | Rooms **can mix obstacles at any difficulty** (e.g. ice + wind); lower difficulty = gentler combos | Shafin's pick. The difficulty budget keeps Easy fair: a combo costs more points. |
+| 2026-10-19 | The room box = **old Sky Course parts + the 6 new obstacles** (bridges, discs, sliding stones, maze, tower + elevator, belt, ice, trampoline, hammer, wind) | Shafin's pick. Most variety in random worlds. |
+| 2026-10-19 | Rooms always run **forward (−z)**; they can drift left/right and go up, never turn around | Keeps snapping simple: any room fits after any room and they can't run into each other. Turns can come later. |
+| 2026-10-19 | Rooms are joined by **8×8 pads with a checkpoint** | Same size as the Sky Course pads, so a chain of 6 always spawns safely, and a fall only costs you one room. |
+| 2026-10-19 | The world is built from a **seeded dice** (mulberry32), never Math.random | The server sends one number, every phone builds the exact same world. |
+| 2026-10-19 | **No trampolines in random worlds** (room removed; the physics stays for the Obstacle Lab) | Shafin played it with friends: on a rope, the whole team can't bounce at once, so it feels nearly impossible. |

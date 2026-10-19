@@ -18,6 +18,12 @@
       "runtimeExecutable": "npx",
       "runtimeArgs": ["tsx", "server/index.ts", "--local", "--port=3101", "--course=lab"],
       "port": 3101
+    },
+    {
+      "name": "knot-alone-gallery",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["tsx", "server/index.ts", "--local", "--port=3102", "--course=gallery"],
+      "port": 3102
     }
   ]
 }
