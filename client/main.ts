@@ -1,16 +1,17 @@
-// The game page 🎮 — runs the world, reads the controls, draws everything.
-// Step 3 (rope test): you + robot buddies tied together in a chain.
+// The game page 🎮 — the boss server runs the game; this page shows it and sends your controls.
+// Flow: join screen (name, color, hat) → lobby (everyone waits, host picks rope mode) → game.
 
 import * as THREE from 'three';
 import { createBrick } from './world/bricks';
 import { createCloudField, createSkyBackground } from './world/sky';
 import { BlockyCharacter } from './character';
-import { RopeView } from './rope';
 import { Controls } from './controls';
-import { connect } from './connection';
+import { Connection, playerToken } from './connection';
+import { GameView } from './game-view';
+import { JoinScreen, LobbyPanel, type Look } from './lobby';
 import { TEST_COURSE } from '../shared/course';
-import { GameWorld, initPhysics, TICK, type PlayerInput, type PlayerState, type RopeState } from '../shared/sim/world';
-import { BotBrain, type BotMode } from '../shared/sim/bots';
+import { GameWorld, initPhysics } from '../shared/sim/world';
+import type { LobbyPlayer, Phase, ServerMessage } from '../shared/messages';
 
 const $ = <T extends HTMLElement>(selector: string) => document.querySelector<T>(selector)!;
 const canvas = $<HTMLCanvasElement>('#game');
@@ -60,132 +61,140 @@ function resize() {
 window.addEventListener('resize', resize);
 resize();
 
+// The physics engine is only used here to find floors (for shadows and ropes). The server runs the real game.
+await initPhysics();
+const floors = new GameWorld(course);
+
+// ---------- State ----------
+
+let myId: string | null = null;
+let phase: Phase = 'lobby';
+let lobbyPlayers: LobbyPlayer[] = [];
+let joined = false;
+let myLook: Look | null = null;
+let game: GameView | null = null;
+
 // ---------- Talk to the server ----------
 
-let online = false;
-let playersOnline = 0;
-
-function updateStatus() {
-  statusLabel.textContent = online ? `✅ ${playersOnline} online` : '⏳ Connecting…';
-}
-
-connect(
-  (message) => {
-    if (message.type === 'welcome' || message.type === 'players') {
-      playersOnline = message.playersOnline;
-      updateStatus();
-    }
-  },
-  (isOnline) => {
-    online = isOnline;
-    updateStatus();
-  },
-);
-updateStatus();
-
-// ---------- The team: you + robot buddies, tied in a chain ----------
-
-await initPhysics();
-
-const ME = 'me';
-const SHIRT_COLORS = [0xe63946, 0x2a9df4, 0x52b788, 0xffc300, 0x9d4edd, 0xf77f00];
-const BOT_COUNTS = [1, 2, 3, 5];
-
-interface Member {
-  id: string;
-  view: BlockyCharacter;
-  previous: PlayerState;
-  current: PlayerState;
-  shown: THREE.Vector3;
-}
-
-let world!: GameWorld;
-let members: Member[] = [];
-let ropes: { view: RopeView; state: RopeState; a: Member; b: Member }[] = [];
-let bots: BotBrain[] = [];
-let botCount = 3;
-let botMode: BotMode = 'follow';
-
-/** Builds a fresh world with you at the front and `botCount` bots tied behind you. */
-function buildTeam() {
-  for (const member of members) scene.remove(member.view.root, member.view.shadow);
-  for (const rope of ropes) {
-    scene.remove(rope.view.mesh);
-    rope.view.dispose();
-  }
-  world?.dispose();
-
-  world = new GameWorld(course);
-  const ids = [ME, ...Array.from({ length: botCount }, (_, i) => `bot${i + 1}`)];
-  for (const id of ids) world.addPlayer(id);
-  for (let i = 1; i < ids.length; i++) world.tie(ids[i - 1], ids[i]);
-
-  members = ids.map((id, i) => {
-    const view = new BlockyCharacter(SHIRT_COLORS[i % SHIRT_COLORS.length]);
-    scene.add(view.root, view.shadow);
-    const state = world.getState(id)!;
-    return { id, view, previous: state, current: state, shown: new THREE.Vector3(state.x, state.y, state.z) };
-  });
-
-  const byId = new Map(members.map((m) => [m.id, m]));
-  ropes = world.getRopes().map((rope) => {
-    const view = new RopeView(rope.length);
-    scene.add(view.mesh);
-    return { view, state: rope, a: byId.get(rope.a)!, b: byId.get(rope.b)! };
-  });
-
-  // Each bot follows the player right in front of it in the chain.
-  bots = ids.slice(1).map((id, i) => new BotBrain(id, ids[i]));
-  snapCamera = true;
-}
-
-// ---------- Rope test buttons ----------
-
-const botsButton = $<HTMLButtonElement>('#btn-bots');
-const modeButton = $<HTMLButtonElement>('#btn-mode');
-const resetButton = $<HTMLButtonElement>('#btn-reset');
-
-function updateButtons() {
-  botsButton.textContent = `🤖 ${botCount}`;
-  modeButton.textContent = botMode === 'follow' ? '🏃 Follow' : '😴 Lazy';
-}
-
-function changeBotCount() {
-  botCount = BOT_COUNTS[(BOT_COUNTS.indexOf(botCount) + 1) % BOT_COUNTS.length];
-  buildTeam();
-  updateButtons();
-}
-function toggleBotMode() {
-  botMode = botMode === 'follow' ? 'lazy' : 'follow';
-  updateButtons();
-}
-function restart() {
-  world.respawnAll();
-  snapCamera = true;
-}
-
-for (const [button, action] of [
-  [botsButton, changeBotCount],
-  [modeButton, toggleBotMode],
-  [resetButton, restart],
-] as const) {
-  button.addEventListener('click', () => {
-    action();
-    button.blur(); // so Space doesn't "press" the button again
-  });
-}
-window.addEventListener('keydown', (e) => {
-  if (e.repeat) return;
-  if (e.code === 'KeyB') changeBotCount();
-  if (e.code === 'KeyL') toggleBotMode();
-  if (e.code === 'KeyR') restart();
+const token = playerToken();
+const connection = new Connection(onMessage, (online) => {
+  updateStatus();
+  // Came back after the line dropped → join again automatically (the server remembers us by token).
+  if (online && joined && myLook) sendJoin(myLook);
 });
 
-// ---------- Start ----------
+function sendJoin(look: Look) {
+  connection.send({ type: 'join', token, ...look });
+}
 
-let snapCamera = true;
-buildTeam();
-updateButtons();
+function updateStatus() {
+  if (!connection.online) {
+    statusLabel.textContent = '⏳ Connecting…';
+    return;
+  }
+  const people = lobbyPlayers.filter((p) => p.online).length;
+  statusLabel.textContent = `✅ ${people} online`;
+}
+
+function onMessage(message: ServerMessage) {
+  switch (message.type) {
+    case 'welcome':
+      myId = message.id;
+      joined = true;
+      joinScreen.hide();
+      break;
+    case 'full':
+      joined = false;
+      joinScreen.show();
+      joinScreen.showMessage('😢 The game is full (6 players max).');
+      break;
+    case 'lobby':
+      lobbyPlayers = message.players;
+      phase = message.phase;
+      lobby.update(message.players, myId, message.mode, message.bots);
+      if (phase === 'lobby' && game) endGame();
+      refreshScreens();
+      updateStatus();
+      break;
+    case 'start':
+      startGame(message);
+      break;
+    case 'snap':
+      game?.addSnapshot(message);
+      break;
+  }
+}
+
+// ---------- Screens ----------
+
+const joinScreen = new JoinScreen((look) => {
+  myLook = look;
+  sendJoin(look);
+});
+
+const lobby = new LobbyPanel({
+  setMode: (mode) => connection.send({ type: 'setup', mode }),
+  setBots: (bots) => connection.send({ type: 'setup', bots }),
+  start: () => connection.send({ type: 'start' }),
+  editLook: () => joinScreen.show('Save'),
+});
+
+function amHost() {
+  return lobbyPlayers.some((p) => p.host && p.id === myId);
+}
+
+function refreshScreens() {
+  const playing = phase === 'playing' && !!game;
+  document.body.classList.toggle('playing', playing);
+  controls.enabled = playing;
+  $('#host-panel').classList.toggle('hidden', !(playing && amHost()));
+  if (joined && !playing && !joinScreen.isOpen) lobby.show();
+  else lobby.hide();
+  if (!playing) refreshLineup();
+}
+
+$('#btn-restart').addEventListener('click', () => connection.send({ type: 'restart' }));
+$('#btn-lobby').addEventListener('click', () => connection.send({ type: 'backToLobby' }));
+const isTyping = (e: Event) => e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement;
+window.addEventListener('keydown', (e) => {
+  if (e.code === 'KeyR' && !e.repeat && phase === 'playing' && amHost() && !isTyping(e)) {
+    connection.send({ type: 'restart' });
+  }
+});
+
+// Opening/closing the join screen changes what should be shown.
+new MutationObserver(refreshScreens).observe($('#join'), { attributes: true, attributeFilter: ['class'] });
+
+// ---------- Lobby lineup: everyone stands on the start platform, facing the camera ----------
+
+let lineup: { key: string; view: BlockyCharacter }[] = [];
+const LINEUP_Z = -2;
+const LINEUP_SPACING = 1.5;
+
+function refreshLineup() {
+  const people = phase === 'lobby' ? lobbyPlayers : [];
+  const keys = people.map((p) => `${p.id}|${p.name}|${p.color}|${p.hat}`);
+  if (keys.join() === lineup.map((l) => l.key).join()) return;
+  for (const item of lineup) item.view.dispose();
+  lineup = people.map((p, i) => {
+    const view = new BlockyCharacter(p.color, { hat: p.hat, name: p.name });
+    scene.add(view.root, view.shadow);
+    return { key: keys[i], view };
+  });
+}
+
+function updateLineup(dt: number) {
+  lineup.forEach(({ view }, i) => {
+    const x = (i - (lineup.length - 1) / 2) * LINEUP_SPACING;
+    view.update(
+      dt,
+      { x, y: 0, z: LINEUP_Z, vx: 0, vy: 0, vz: 0, grounded: true, stunned: false, facing: 0 },
+      0,
+    );
+  });
+}
+
+// ---------- The game ----------
 
 const controls = new Controls(canvas, {
   joystick: $('#joystick'),
@@ -193,88 +202,119 @@ const controls = new Controls(canvas, {
   jump: $('#jump'),
   hint: $('#hint'),
 });
-controls.yaw = 0; // camera starts behind you, looking down the course
 
-// Handy for testing from the browser console.
-(window as unknown as { knot: object }).knot = { controls, scene, get world() { return world; }, get ropes() { return ropes; } };
+function startGame(message: Extract<ServerMessage, { type: 'start' }>) {
+  game?.dispose();
+  for (const item of lineup) item.view.dispose();
+  lineup = [];
+  game = new GameView(scene, floors, message);
+  phase = 'playing';
+  controls.yaw = 0; // camera starts behind you, looking down the course
+  snapCamera = true;
+  refreshScreens();
+}
 
-$('#loading').classList.add('hidden');
+function endGame() {
+  game?.dispose();
+  game = null;
+  if (document.pointerLockElement) document.exitPointerLock();
+  refreshScreens();
+}
 
-// ---------- Game loop (runs every frame) ----------
+/** Who the camera follows: me, or (if I'm only watching) the first player. */
+function followedId() {
+  if (!game) return null;
+  if (myId && game.members.has(myId)) return myId;
+  return game.members.keys().next().value ?? null;
+}
 
-const clock = new THREE.Clock();
-let leftover = 0;
-let jumpThisTick = false;
-const cameraTarget = new THREE.Vector3();
+// ---------- Sending my controls ----------
 
-/** Turns "joystick up/right" into a direction in the world, based on where the camera looks. */
-function readInput(): PlayerInput {
+const INPUT_RATE = 30;
+let jumps = 0;
+let lastInputSent = 0;
+
+function sendInput(now: number, force = false) {
+  if (!game || !myId || !game.members.has(myId)) return;
+  if (!force && now - lastInputSent < 1000 / INPUT_RATE) return;
+  lastInputSent = now;
+  // Turn "joystick up/right" into a direction in the world, based on where the camera looks.
   const move = controls.getMove();
   const sin = Math.sin(controls.yaw);
   const cos = Math.cos(controls.yaw);
   // forward = (-sin, -cos), right = (cos, -sin)
-  return {
-    x: -sin * move.y + cos * move.x,
-    z: -cos * move.y - sin * move.x,
-    jump: jumpThisTick,
-  };
+  connection.send({
+    type: 'input',
+    x: Math.round((-sin * move.y + cos * move.x) * 100) / 100,
+    z: Math.round((-cos * move.y - sin * move.x) * 100) / 100,
+    jumps,
+  });
 }
 
-const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+// ---------- Start ----------
+
+$('#loading').classList.add('hidden');
+joinScreen.show();
+
+// Handy for testing from the browser console.
+(window as unknown as { knot: object }).knot = {
+  controls,
+  scene,
+  connection,
+  get game() {
+    return game;
+  },
+  get myId() {
+    return myId;
+  },
+};
+
+// ---------- Game loop (runs every frame) ----------
+
+const clock = new THREE.Clock();
+const cameraTarget = new THREE.Vector3();
+let snapCamera = true;
 
 renderer.setAnimationLoop(() => {
   const dt = Math.min(clock.getDelta(), 0.1);
-  if (controls.consumeJump()) jumpThisTick = true;
+  const now = performance.now();
+  const time = clock.elapsedTime;
 
-  // Physics moves in fixed steps; we may do 0, 1 or 2 steps this frame.
-  leftover += dt;
-  while (leftover >= TICK) {
-    const inputs = new Map<string, PlayerInput>([[ME, readInput()]]);
-    for (const bot of bots) inputs.set(bot.id, bot.think(world, botMode));
-    world.step(inputs);
-    jumpThisTick = false;
-    for (const member of members) {
-      member.previous = member.current;
-      member.current = world.getState(member.id)!;
+  if (game) {
+    if (controls.consumeJump()) {
+      jumps++;
+      sendInput(now, true); // send jumps right away
     }
-    leftover -= TICK;
-  }
+    sendInput(now);
+    game.update(dt);
 
-  // Draw everyone smoothly between the last two physics steps.
-  const t = leftover / TICK;
-  for (const member of members) {
-    const { previous: a, current: b } = member;
-    const teleported = Math.abs(b.y - a.y) > 5 || Math.abs(b.z - a.z) > 5;
-    const shown: PlayerState = teleported
-      ? b
-      : { ...b, x: lerp(a.x, b.x, t), y: lerp(a.y, b.y, t), z: lerp(a.z, b.z, t) };
-    if (teleported && member.id === ME) snapCamera = true;
-    member.shown.set(shown.x, shown.y, shown.z);
-    member.view.update(dt, shown, world.distanceToFloor(shown.x, shown.y + 0.1, shown.z));
+    // Camera floats behind and above the player we follow.
+    const id = followedId();
+    const target = id ? game.positionOf(id) : null;
+    if (target) {
+      const goal = new THREE.Vector3(target.x, target.y + 1.5, target.z);
+      if (snapCamera || cameraTarget.distanceTo(goal) > 8) cameraTarget.copy(goal);
+      else cameraTarget.lerp(goal, Math.min(1, dt * 12));
+      snapCamera = false;
+    }
+    const flat = Math.cos(controls.pitch) * CAMERA_DISTANCE;
+    camera.position.set(
+      cameraTarget.x + Math.sin(controls.yaw) * flat,
+      cameraTarget.y + Math.sin(controls.pitch) * CAMERA_DISTANCE,
+      cameraTarget.z + Math.cos(controls.yaw) * flat,
+    );
+    camera.lookAt(cameraTarget);
+  } else {
+    // Lobby: the camera looks at everyone lined up, gently swaying. It backs up on narrow screens.
+    controls.consumeJump();
+    updateLineup(dt);
+    const width = Math.max(lineup.length, 1) * LINEUP_SPACING + 2;
+    const halfFov = Math.atan(Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect);
+    const distance = Math.max(7, width / 2 / Math.tan(halfFov));
+    camera.position.set(Math.sin(time * 0.3) * 1.5, 1.2 + distance * 0.25, LINEUP_Z + distance);
+    camera.lookAt(0, 0.4, LINEUP_Z);
   }
-  for (const rope of ropes) {
-    const { shown: a } = rope.a;
-    const { shown: b } = rope.b;
-    const topY = Math.max(a.y, b.y) + 1;
-    const below = world.distanceToFloor((a.x + b.x) / 2, topY, (a.z + b.z) / 2, 6);
-    rope.view.update(a, b, below === null ? null : topY - below, rope.state.current, rope.state.bend);
-  }
-
-  // Camera floats behind and above you, and follows smoothly.
-  const me = members[0].shown;
-  const goal = new THREE.Vector3(me.x, me.y + 1.5, me.z);
-  if (snapCamera) cameraTarget.copy(goal);
-  else cameraTarget.lerp(goal, Math.min(1, dt * 12));
-  snapCamera = false;
-  const flat = Math.cos(controls.pitch) * CAMERA_DISTANCE;
-  camera.position.set(
-    cameraTarget.x + Math.sin(controls.yaw) * flat,
-    cameraTarget.y + Math.sin(controls.pitch) * CAMERA_DISTANCE,
-    cameraTarget.z + Math.cos(controls.yaw) * flat,
-  );
-  camera.lookAt(cameraTarget);
 
   clouds.rotation.y += dt * 0.01;
-
   renderer.render(scene, camera);
 });

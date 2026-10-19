@@ -13,6 +13,8 @@ export class Controls {
   yaw = 0;
   /** Camera angle above the player (radians). */
   pitch = 0.6; // high enough to see over the buddies behind you
+  /** Controls only work during the game (not while typing your name in the lobby). */
+  enabled = false;
 
   private keys = new Set<string>();
   private jumpQueued = false;
@@ -28,6 +30,7 @@ export class Controls {
     private ui: { joystick: HTMLElement; knob: HTMLElement; jump: HTMLElement; hint: HTMLElement },
   ) {
     window.addEventListener('keydown', (e) => {
+      if (!this.enabled || e.target instanceof HTMLInputElement) return;
       this.keys.add(e.code);
       if (e.code === 'Space') {
         if (!e.repeat) this.jumpQueued = true;
@@ -91,6 +94,7 @@ export class Controls {
   }
 
   private onPointerDown(e: PointerEvent) {
+    if (!this.enabled) return;
     if (e.pointerType === 'mouse') {
       // Lock the mouse to the game for smooth looking. If the browser says no, drag to look instead.
       this.canvas.requestPointerLock?.()?.catch?.(() => {});

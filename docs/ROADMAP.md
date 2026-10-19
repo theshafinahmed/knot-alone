@@ -35,11 +35,14 @@
 - [x] **Shafin plays it and says if it's fun.** ✅ He says it's fun!
 
 ## Step 4 — Real friends on the same Wi-Fi 👥
-- [ ] Server becomes the boss (physics runs on the host computer)
-- [ ] Lobby: type name, pick color + hat
-- [ ] **Names float above heads**
-- [ ] Host picks rope mode (one chain / teams of 3 / teams of 2) and presses Start
-- [ ] Smooth movement for other players (interpolation)
+- [x] Server becomes the boss (physics runs on the host computer)
+- [x] Lobby: type name, pick color + hat
+- [x] **Names float above heads**
+- [x] Host picks rope mode (one chain / teams of 3 / teams of 2) and presses Start
+- [x] Smooth movement for other players (interpolation)
+- [x] Host can add robot buddies to fill empty spots (test alone, or fill a team)
+- [x] A phone that drops out can come back as the same player
+- [x] Shafin tests it with real phones on the same Wi-Fi ✅ works
 
 ## Step 5 — Friends from anywhere in the world 🌍
 - [ ] `npm start` opens a Cloudflare Quick Tunnel automatically

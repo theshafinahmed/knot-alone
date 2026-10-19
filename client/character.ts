@@ -1,6 +1,9 @@
 // The blocky guy 🧍 — made of boxes, Roblox style. Feet are at y = 0.
 
 import * as THREE from 'three';
+import type { Hat } from '../shared/looks';
+import { createHat } from './hats';
+import { createNameTag } from './nametag';
 
 const MIDDLE = 0.95; // middle of the body, from the feet
 const SKIN = 0xffcc4d;
@@ -31,7 +34,7 @@ export class BlockyCharacter {
   private facing = Math.PI;
   private tumble = 0;
 
-  constructor(color: number) {
+  constructor(color: number, options: { hat?: Hat; name?: string } = {}) {
     const shirt = mat(color);
     const skin = mat(SKIN);
     const pants = mat(PANTS);
@@ -73,8 +76,20 @@ export class BlockyCharacter {
     const smile = new THREE.Mesh(box(0.2, 0.04, 0.02), eyeMat);
     smile.position.set(0, -0.1, 0.245);
     head.add(smile);
+    const hat = options.hat ? createHat(options.hat) : null;
+    if (hat) {
+      hat.position.y = 0.24; // top of the head
+      head.add(hat);
+    }
 
     this.body.add(this.leftLeg, this.rightLeg, torso, this.leftArm, this.rightArm, head);
+
+    // The name floats above the head (and above any hat). It doesn't tumble with the body.
+    if (options.name) {
+      const tag = createNameTag(options.name, color);
+      tag.position.y = 2.65;
+      this.root.add(tag);
+    }
 
     // Soft round shadow on the floor (much cheaper than real shadows).
     const shadow = new THREE.Mesh(
@@ -83,6 +98,23 @@ export class BlockyCharacter {
     );
     shadow.rotation.x = -Math.PI / 2;
     this.shadow = shadow;
+  }
+
+  /** Removes this character from the scene and frees its memory. */
+  dispose() {
+    this.root.removeFromParent();
+    this.shadow.removeFromParent();
+    const free = (object: THREE.Object3D) => {
+      const mesh = object as THREE.Mesh;
+      mesh.geometry?.dispose();
+      const materials = Array.isArray(mesh.material) ? mesh.material : mesh.material ? [mesh.material] : [];
+      for (const material of materials) {
+        (material as THREE.MeshBasicMaterial).map?.dispose();
+        material.dispose();
+      }
+    };
+    this.root.traverse(free);
+    free(this.shadow);
   }
 
   /** Add this to the scene separately, it follows the floor, not the body. */

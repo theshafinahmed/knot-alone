@@ -121,6 +121,9 @@ interface PlayerBody {
   hangGrace: number;
   /** Pressing "pull" this tick. */
   pulling: boolean;
+  /** Which team (lane) this player is in, and where they start. */
+  team: number;
+  spawn: Vec3;
   /** Scrambling over an edge: which way, and for how much longer. */
   mantle: { x: number; z: number; time: number };
 }
@@ -154,8 +157,12 @@ export class GameWorld {
     return [...this.players.keys()];
   }
 
-  addPlayer(id: string) {
-    const spot = this.spawnSpot(this.players.size);
+  /**
+   * Adds a player. Each team gets its own lane on the start platform;
+   * `slot` is their place in the line (0 = front).
+   */
+  addPlayer(id: string, team = 0, slot = this.players.size, teamCount = 1) {
+    const spot = this.spawnSpot(team, slot, teamCount);
     const body = this.world.createRigidBody(
       RAPIER.RigidBodyDesc.dynamic()
         .setTranslation(spot.x, spot.y, spot.z)
@@ -182,6 +189,8 @@ export class GameWorld {
       hangRope: null,
       hangGrace: 0,
       pulling: false,
+      team,
+      spawn: spot,
       mantle: { x: 0, z: 0, time: 0 },
     });
   }
@@ -216,13 +225,12 @@ export class GameWorld {
     this.updateRopes();
     this.world.step();
 
-    // If anyone falls all the way down, the whole team starts again.
+    // If anyone falls all the way down, their whole team starts again.
+    const fallenTeams = new Set<number>();
     for (const player of this.players.values()) {
-      if (player.body.translation().y < this.course.fallLimit) {
-        this.respawnAll();
-        break;
-      }
+      if (player.body.translation().y < this.course.fallLimit) fallenTeams.add(player.team);
     }
+    for (const team of fallenTeams) this.respawnTeam(team);
   }
 
   getState(id: string): PlayerState | undefined {
@@ -251,12 +259,18 @@ export class GameWorld {
     return hit ? hit.timeOfImpact : null;
   }
 
-  /** Puts everyone back at the start, standing in a line. */
+  /** Puts everyone back at the start. */
   respawnAll() {
-    let i = 0;
-    for (const player of this.players.values()) {
-      const spot = this.spawnSpot(i++);
-      player.body.setTranslation(spot, true);
+    for (const team of new Set([...this.players.values()].map((p) => p.team))) this.respawnTeam(team);
+  }
+
+  /** Puts one team back at the start, standing in their line. */
+  respawnTeam(team: number) {
+    const members = new Set<string>();
+    for (const [id, player] of this.players) {
+      if (player.team !== team) continue;
+      members.add(id);
+      player.body.setTranslation(player.spawn, true);
       player.body.setLinvel({ x: 0, y: 0, z: 0 }, true);
       player.stunned = 0;
       player.fallSpeed = 0;
@@ -266,7 +280,9 @@ export class GameWorld {
       player.hangGrace = 0;
       player.mantle.time = 0;
     }
-    for (const rope of this.ropes) rope.current = rope.length;
+    for (const rope of this.ropes) {
+      if (members.has(rope.a) || members.has(rope.b)) rope.current = rope.length;
+    }
   }
 
   /**
@@ -399,10 +415,11 @@ export class GameWorld {
     return { x: edge.x, y: point.y + 0.05, z: edge.z };
   }
 
-  /** Spawn spots go in a line backwards from the course spawn, a bit less than a rope apart. */
-  private spawnSpot(index: number) {
+  /** Spawn spots: one lane per team (side by side), each team in a line a bit less than a rope apart. */
+  private spawnSpot(team: number, slot: number, teamCount: number) {
     const { spawn } = this.course;
-    return { x: spawn.x, y: spawn.y + FEET_TO_CENTER, z: spawn.z + index * ROPE.length * 0.6 };
+    const laneX = (team - (teamCount - 1) / 2) * 3;
+    return { x: spawn.x + laneX, y: spawn.y + FEET_TO_CENTER, z: spawn.z + slot * ROPE.length * 0.6 };
   }
 
   private applyInput(player: PlayerBody, input: PlayerInput) {

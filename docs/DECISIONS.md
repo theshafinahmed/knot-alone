@@ -27,3 +27,8 @@
 | 2026-10-19 | Standing still = **braced** (much stronger grip). No air brakes when not pressing anything | Catching a falling friend is the best moment in a rope game. It needs to be possible. |
 | 2026-10-19 | You can only hang from an **edge** or a **friend who is standing** | Without this, two falling players "climbed" each other up into the sky. |
 | 2026-10-19 | Keep players able to **stand on each other's heads** | It happens naturally after a rescue and it's funny. |
+| 2026-10-19 | **Snapshots 30×/sec, JSON**, drawn **100 ms in the past** with smoothing | Simple, small enough for 6 players, smooth on Wi-Fi. Can switch to binary or a smaller delay later if needed. |
+| 2026-10-19 | **No own-player prediction yet** | Keeps everyone exactly in sync with the boss. Small delay is OK on Wi-Fi. Add later only if far-away friends feel it. |
+| 2026-10-19 | Players remembered by a **secret token on the phone** | A phone that drops off Wi-Fi or reloads gets its character back mid-game. |
+| 2026-10-19 | Host can add **robot buddies** in the lobby | Lets Shafin test alone, and fills teams when there are fewer friends. |
+| 2026-10-19 | People who drop out mid-game become **dead weight** until they return | Removing them would break the rope chain for everyone else. |

@@ -96,4 +96,21 @@ Note: the Quick Tunnel link **changes every time** the server restarts. That's f
 
 ## Host controls
 
-- The **first person to join** becomes the host (usually the person running the server). They get the rope-mode picker and the Start button.
+- The **first person to join** becomes the host (usually the person running the server). They get the rope-mode picker, the bots +/− and the Start button, and in the game: ↺ restart (key **R**) and 🏠 back to lobby.
+- If the host leaves, whoever has been there longest (and is still connected) becomes the host.
+
+## How multiplayer works (Step 4)
+
+- **`server/room.ts`** is the boss. One room per server. Phases: `lobby` → `playing` → back to `lobby`.
+- **Joining:** the page sends `join` with a secret **token** (saved on the phone in localStorage) + name, color, hat. Same token = same player, so a phone that drops out (or reloads) gets its character back. In the lobby, people who leave are removed. In a game, they stay as **dead weight** (limp) until they come back.
+- **Max 6** players (people + bots). People who join mid-game watch (camera follows the first player) until the host goes back to the lobby.
+- **Teams:** `shared/teams.ts` → `splitTeams` spreads people across teams first, then bots fill the gaps. A mode is only allowed if it fits (teams need 2+ full teams). Each team gets its own lane on the start platform. Falling only respawns **your own team**.
+- **Bots** (`BotBrain`) run on the server. A bot follows the player ahead of it in its team. Bots wear colors no person picked.
+- **Messages** (`shared/messages.ts`, JSON):
+  - page → server: `join`, `input {x, z, jumps}` (30×/sec; `jumps` is a counter so no jump gets lost), host-only `setup`, `start`, `restart`, `backToLobby`.
+  - server → page: `welcome`, `full`, `lobby`, `start {players, teams, ropes}`, `snap` (30×/sec).
+  - `snap` = server time + every player as a short array `[id, x, y, z, vx, vy, vz, facing, flags]` + every rope `[current]` or `[current, bendX, bendY, bendZ]`.
+- **Smooth drawing** (`client/game-view.ts`): the page draws everyone **100 ms in the past** and slides between the two snapshots around that moment. Clocks are lined up using the smallest (local time − server time) seen.
+- The page keeps its own **floors-only** `GameWorld` just to find the ground (for shadows and ropes resting on the floor). It does not run the game.
+- **Known limit:** your own character also waits for the server (no prediction yet), so there's a small delay (~0.1–0.2 s) between pressing and moving. Fine on Wi-Fi. Revisit in Step 5 if friends far away feel it.
+- **Testing two players on one computer:** open `http://localhost:3000` and `http://127.0.0.1:3000` in two tabs. They count as different "phones" (separate saved token). Two tabs on the *same* address share a token and would be the same player.

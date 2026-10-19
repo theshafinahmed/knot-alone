@@ -1,17 +1,17 @@
 // The boss 👑. Runs on the host's computer.
 // Job 1: send the game page to anyone who opens the link.
-// Job 2: keep a live connection (WebSocket) open with every player.
+// Job 2: keep a live connection (WebSocket) open with every player, and run the game room.
 
 import http from 'node:http';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import zlib from 'node:zlib';
-import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import { WebSocketServer, WebSocket } from 'ws';
+import { WebSocketServer } from 'ws';
 import { PORT, SOCKET_PATH } from '../shared/config';
-import type { ServerMessage } from '../shared/messages';
+import { initPhysics } from '../shared/sim/world';
+import { Room } from './room';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const CLIENT_DIR = path.resolve(ROOT, '../dist/client');
@@ -91,27 +91,12 @@ function compressed(filePath: string, encoding: 'br' | 'gzip') {
 
 // ---------- Job 2: live connection with players ----------
 
+// The physics engine has to load before the room can run a game.
+await initPhysics();
+
+const room = new Room();
 const wss = new WebSocketServer({ server, path: SOCKET_PATH });
-
-function send(socket: WebSocket, message: ServerMessage) {
-  if (socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify(message));
-}
-
-function broadcast(message: ServerMessage) {
-  for (const socket of wss.clients) send(socket, message);
-}
-
-wss.on('connection', (socket) => {
-  const playerId = randomUUID();
-  console.log(`🙋 Player joined (${wss.clients.size} online)`);
-  send(socket, { type: 'welcome', playerId, playersOnline: wss.clients.size });
-  broadcast({ type: 'players', playersOnline: wss.clients.size });
-
-  socket.on('close', () => {
-    console.log(`👋 Player left (${wss.clients.size} online)`);
-    broadcast({ type: 'players', playersOnline: wss.clients.size });
-  });
-});
+wss.on('connection', (socket) => room.connect(socket));
 
 // ---------- Start ----------
 

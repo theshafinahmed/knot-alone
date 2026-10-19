@@ -72,8 +72,9 @@ Inspired by a co-op rope game seen in a streamer video (players tied with stripe
 
 1. The host runs **one command** on their computer.
 2. The game prints a **link**. The host sends it to friends (WhatsApp, Discord, anything).
-3. Friends tap the link → type their name → pick color + hat → they're in the lobby.
-4. The host picks the rope mode and presses **Start**.
+3. Friends tap the link → type their name → pick color + hat → they're in the lobby, standing on the start platform with their name above their head.
+4. The host picks the rope mode, adds robot buddies if they want to fill spots, and presses **Start**.
+5. Hats to pick from: none 🚫, cap 🧢, top hat 🎩, crown 👑, party hat 🎉, straw hat 👒. Shirt colors: red, blue, green, yellow, purple, orange, pink, teal.
 
 ## Not in the game (on purpose)
 

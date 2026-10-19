@@ -15,15 +15,56 @@
       <span id="status">Connecting…</span>
     </div>
 
-    <div id="test-panel">
-      <button id="btn-bots" title="Change number of robot buddies (B)">🤖 3</button>
-      <button id="btn-mode" title="Robots follow you, or flop around like sacks (L)">🏃 Follow</button>
-      <button id="btn-reset" title="Everyone back to the start (R)">↺</button>
+    <!-- Step 1: type your name, pick a look -->
+    <div id="join" class="screen hidden">
+      <form id="join-form" class="card">
+        <h1>Knot Alone</h1>
+        <p class="tagline">Tied together. Never alone. 🪢</p>
+
+        <label class="label" for="name">Your name</label>
+        <input id="name" maxlength="12" autocomplete="off" spellcheck="false" placeholder="Type your name" />
+
+        <div class="label">Shirt color</div>
+        <div id="colors" class="swatches"></div>
+
+        <div class="label">Hat</div>
+        <div id="hats" class="swatches"></div>
+
+        <button id="join-button" class="big" type="submit">Join game</button>
+        <p id="join-message"></p>
+      </form>
     </div>
 
-    <div id="hint">
-      Click to look around · <b>WASD</b> move · <b>Space</b> jump · <b>B</b> bots · <b>L</b> lazy bots · <b>R</b> restart
+    <!-- Step 2: the lobby (everyone waiting for the host to press Start) -->
+    <div id="lobby" class="sheet hidden">
+      <div class="sheet-head">
+        <b>Lobby</b>
+        <span id="lobby-count"></span>
+        <button id="edit-look" type="button">✏️ My look</button>
+      </div>
+      <ul id="lobby-list"></ul>
+
+      <div id="host-controls" class="hidden">
+        <div class="label">Rope mode</div>
+        <div id="modes" class="segmented"></div>
+        <div class="label">Robot buddies</div>
+        <div class="stepper">
+          <button id="bots-minus" type="button">−</button>
+          <span id="bots-count">0</span>
+          <button id="bots-plus" type="button">+</button>
+        </div>
+        <button id="start-button" class="big" type="button">▶ Start</button>
+      </div>
+      <p id="waiting" class="hidden">Waiting for the host to press Start…</p>
     </div>
+
+    <!-- In the game: host buttons -->
+    <div id="host-panel" class="hidden">
+      <button id="btn-restart" type="button" title="Everyone back to the start (R)">↺</button>
+      <button id="btn-lobby" type="button" title="Back to the lobby">🏠 Lobby</button>
+    </div>
+
+    <div id="hint">Click to look around · <b>WASD</b> move · <b>Space</b> jump (tap while hanging to climb)</div>
 
     <div id="joystick"><div id="knob"></div></div>
     <button id="jump" aria-label="Jump">⤒</button>
