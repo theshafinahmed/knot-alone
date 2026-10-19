@@ -393,6 +393,156 @@ button.big.secondary {
   opacity: 0.7;
 }
 
+/* ---------- Race: timer, countdown, pop-ups, results ---------- */
+
+#timer {
+  position: fixed;
+  top: max(12px, env(safe-area-inset-top));
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(29, 53, 87, 0.7);
+  color: #fff;
+  font: 900 18px ui-monospace, Consolas, monospace;
+  pointer-events: none;
+}
+
+@media (max-width: 520px) {
+  #timer {
+    top: calc(max(12px, env(safe-area-inset-top)) + 80px);
+  }
+}
+
+#countdown {
+  position: fixed;
+  top: 32%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #fff;
+  font-size: clamp(80px, 22vw, 160px);
+  font-weight: 900;
+  -webkit-text-stroke: 4px #1d3557;
+  text-shadow: 0 8px 0 rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+}
+
+#toast {
+  position: fixed;
+  top: 22%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 10px 18px;
+  border-radius: 14px;
+  background: rgba(22, 163, 74, 0.92);
+  color: #fff;
+  font-size: 20px;
+  font-weight: 900;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.pop {
+  animation: pop 0.45s ease-out;
+}
+
+@keyframes pop {
+  0% {
+    scale: 1.8;
+    opacity: 0;
+  }
+  60% {
+    scale: 0.95;
+    opacity: 1;
+  }
+  100% {
+    scale: 1;
+  }
+}
+
+#results {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: min(400px, calc(100% - 32px));
+  max-height: calc(100% - 32px);
+  overflow-y: auto;
+  padding: 20px 18px;
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: 0 10px 0 rgba(0, 0, 0, 0.12), 0 20px 40px rgba(0, 0, 0, 0.25);
+  color: #1d3557;
+  text-align: center;
+}
+
+#results h2 {
+  font-size: 26px;
+  font-weight: 900;
+}
+
+#results-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  border: none;
+  background: none;
+  color: #1d3557;
+  font-size: 20px;
+  opacity: 0.5;
+  cursor: pointer;
+}
+
+#results-list {
+  list-style: none;
+  margin: 14px 0 6px;
+  text-align: left;
+}
+
+#results-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 6px;
+  border-radius: 10px;
+  font-weight: 800;
+}
+
+#results-list li.mine {
+  background: #fff7d6;
+}
+
+#results-list .dot {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+}
+
+#results-list .names {
+  flex: 1;
+}
+
+#results-list .time {
+  font-family: ui-monospace, Consolas, monospace;
+}
+
+#results-best,
+#results-wait {
+  margin-top: 8px;
+  font-weight: 800;
+  opacity: 0.7;
+}
+
+#results-host {
+  display: flex;
+  gap: 10px;
+}
+
+#results-host button.big {
+  flex: 1;
+}
+
 /* ---------- Computer hint ---------- */
 
 #hint {
@@ -417,21 +567,94 @@ body:not(.playing) #hint {
 
 /* ---------- Phone controls ---------- */
 
+/* The movement circle: always in the bottom-left corner during the game on phones. */
 #joystick {
+  display: none;
   position: fixed;
-  width: 120px;
-  height: 120px;
-  margin: -60px 0 0 -60px;
+  left: max(28px, env(safe-area-inset-left));
+  bottom: max(36px, env(safe-area-inset-bottom));
+  width: 130px;
+  height: 130px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.18);
-  border: 3px solid rgba(255, 255, 255, 0.55);
+  background: rgba(255, 255, 255, 0.22);
+  border: 3px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
   pointer-events: none;
-  opacity: 0;
+  opacity: 0.8;
   transition: opacity 0.1s;
+}
+
+body.touch.playing #joystick {
+  display: block;
 }
 
 #joystick.active {
   opacity: 1;
+}
+
+/* Little arrows inside the ring, so it's clear what it's for. */
+#joystick .arrow {
+  position: absolute;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 14px;
+  line-height: 1;
+}
+
+#joystick .up {
+  top: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+#joystick .down {
+  bottom: 6px;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+#joystick .left {
+  left: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+#joystick .right {
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+/* First-time hints: "Move" under the circle, "Swipe to look" on the right. */
+.touch-hint {
+  display: none;
+  position: fixed;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: rgba(29, 53, 87, 0.75);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+  pointer-events: none;
+  transition: opacity 0.4s;
+}
+
+body.touch.playing .touch-hint {
+  display: block;
+}
+
+.touch-hint.gone {
+  opacity: 0;
+}
+
+#hint-move {
+  left: calc(max(28px, env(safe-area-inset-left)) + 65px);
+  bottom: calc(max(36px, env(safe-area-inset-bottom)) + 140px);
+  transform: translateX(-50%);
+}
+
+#hint-look {
+  right: max(24px, env(safe-area-inset-right));
+  top: 45%;
 }
 
 #knob {

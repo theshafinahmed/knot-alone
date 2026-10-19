@@ -57,6 +57,17 @@
 - The rope look matches the video: red-and-white stripes.
 - **Testing tip:** the physics can run without a screen. Quick test scripts that drive `GameWorld` + `BotBrain` with `npx tsx` and print positions were how the rope rules got tuned. Write new ones for new rope problems.
 
+## The course and the race (Step 6)
+
+- **Course recipe** (`shared/course.ts` types, `shared/sky-course.ts` the Sky Course): still `bricks` (boxes or round `disc`s), moving parts `movers` (`spin` or `slide`), `checkpoints` (pad size + which way the course goes), and a `finish` zone.
+- **Moving parts follow a clock.** `moverPose(mover, time)` says where a part is at any moment. The server moves them as Rapier **kinematic bodies** (they push players). Phones draw them with the same function and the same clock (race time from the snapshots + `COUNTDOWN`), so they match without extra messages.
+- **Carrying you:** the ground check notes which collider you stand on. If it's a moving part, `moverVelocityAt` gives the floor's speed and it's added to your target speed. So "standing still" on a disc means turning with it.
+- **Race rules** (`GameWorld.updateRace`): touching a checkpoint pad further along than your team's last one saves it. Falling (below −40 m) puts your team back at its last checkpoint, lined up and centered on the pad. The team finishes when **every member** stands in the finish zone. The first `COUNTDOWN` (3) seconds nobody can move.
+- **Snapshots** also carry `rt` (race time), `tp` (each team's [checkpoint, finish time or −1]) and `bt` (best time since the server started).
+- **Play again** (↺ / results button) builds a brand-new world with the same teams.
+- The phone's floors-only world for shadows leaves out moving parts (no shadow on discs — small cosmetic thing).
+- **Testing:** headless test scripts check spawns at every checkpoint, disc riding, sweeper/pusher pushing, checkpoint order, finish rule and countdown. An autopilot (+ bot) runs warm-up, bridges, maze and tower. The page has a test-only `knot.freeCam` to look at any part of the course.
+
 ## Fun actions (wave, punch, dance, cheer)
 
 - List and numbers live in `shared/actions.ts` (how long each lasts, punch reach/strength/cooldown).

@@ -58,5 +58,9 @@ export type ServerMessage =
   | { type: 'lobby'; phase: Phase; players: LobbyPlayer[]; mode: RopeMode; bots: number; invite: Invite | null }
   /** A game started: everyone in it (bots too), the teams, and the ropes [a, b, length]. */
   | { type: 'start'; players: LobbyPlayer[]; teams: string[][]; ropes: [string, string, number][] }
-  /** Where everything is right now. `t` is the server's clock in milliseconds. */
-  | { type: 'snap'; t: number; p: SnapPlayer[]; r: SnapRope[] };
+  /**
+   * Where everything is right now. `t` is the server's clock in milliseconds.
+   * `rt` = race time in seconds (negative during the countdown). `tp` = each team's
+   * [last checkpoint, finish time or −1]. `bt` = best finish time so far, or −1.
+   */
+  | { type: 'snap'; t: number; p: SnapPlayer[]; r: SnapRope[]; rt: number; tp: [number, number][]; bt: number };

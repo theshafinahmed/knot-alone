@@ -3,7 +3,7 @@
 
 import { WebSocket } from 'ws';
 import { ACTION_CODE, isAction } from '../shared/actions';
-import { TEST_COURSE } from '../shared/course';
+import { SKY_COURSE } from '../shared/sky-course';
 import { cleanName, HATS, isHat, isShirtColor, SHIRT_COLORS, type Hat } from '../shared/looks';
 import {
   FLAG_GROUNDED,
@@ -175,7 +175,8 @@ export class Room {
         if (this.isHost(person) && this.phase === 'lobby') this.startGame();
         break;
       case 'restart':
-        if (this.isHost(person) && this.game) this.game.world.respawnAll();
+        // Play again: a fresh race with the same teams and settings.
+        if (this.isHost(person) && this.game) this.startGame();
         break;
       case 'backToLobby':
         if (this.isHost(person) && this.phase === 'playing') this.endGame();
@@ -251,7 +252,8 @@ export class Room {
       this.mode,
     );
 
-    const world = new GameWorld(TEST_COURSE);
+    this.game?.world.dispose();
+    const world = new GameWorld(SKY_COURSE);
     const ropes: [string, string, number][] = [];
     teams.forEach((team, t) => {
       team.forEach((id, slot) => world.addPlayer(id, t, slot, teams.length));
@@ -261,6 +263,7 @@ export class Room {
         ropes.push([rope.a, rope.b, rope.length]);
       }
     });
+    world.lineUp(); // now that everyone is added, line each team up properly at the start
 
     // Each bot follows the player in front of it. A bot at the front of a team follows someone else.
     const botsById = new Map(bots.map((b) => [b.id, b]));
@@ -298,6 +301,8 @@ export class Room {
   }
 
   private bots: Bot[] = [];
+  /** Fastest finish since the server started (seconds). */
+  private bestTime: number | null = null;
 
   private endGame() {
     this.stopLoop();
@@ -378,7 +383,22 @@ export class Room {
     const r: SnapRope[] = game.world
       .getRopes()
       .map((rope) => (rope.bend ? [round(rope.current), round(rope.bend.x), round(rope.bend.y), round(rope.bend.z)] : [round(rope.current)]));
-    this.broadcast({ type: 'snap', t: Math.round(now), p, r });
+    // Race clock, and each team's progress: [last checkpoint, finish time or −1].
+    const progress = game.world.teamProgress;
+    for (const team of progress) {
+      if (team.finishedAt !== null && (this.bestTime === null || team.finishedAt < this.bestTime)) {
+        this.bestTime = team.finishedAt;
+      }
+    }
+    this.broadcast({
+      type: 'snap',
+      t: Math.round(now),
+      p,
+      r,
+      rt: round(game.world.raceTime),
+      tp: progress.map((team) => [team.checkpoint, team.finishedAt === null ? -1 : round(team.finishedAt)]),
+      bt: this.bestTime === null ? -1 : round(this.bestTime),
+    });
   }
 
   // ---------- Sending ----------

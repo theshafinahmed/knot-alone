@@ -74,9 +74,25 @@
       </div>
     </div>
 
+    <!-- The race: timer, countdown, checkpoint pop-up, results -->
+    <div id="timer" class="hidden"></div>
+    <div id="countdown" class="hidden"></div>
+    <div id="toast" class="hidden"></div>
+    <div id="results" class="hidden">
+      <button id="results-close" type="button" aria-label="Close">✕</button>
+      <h2 id="results-title"></h2>
+      <ul id="results-list"></ul>
+      <p id="results-best"></p>
+      <div id="results-host" class="hidden">
+        <button id="results-again" class="big" type="button">▶ Play again</button>
+        <button id="results-lobby" class="big secondary" type="button">🏠 Lobby</button>
+      </div>
+      <p id="results-wait"></p>
+    </div>
+
     <!-- In the game: host buttons -->
     <div id="host-panel" class="hidden">
-      <button id="btn-restart" type="button" title="Everyone back to the start (R)">↺</button>
+      <button id="btn-restart" type="button" title="Start the race again (R)">↺</button>
       <button id="btn-lobby" type="button" title="Back to the lobby">🏠 Lobby</button>
     </div>
 
@@ -85,7 +101,12 @@
       <b>1</b> wave · <b>2</b> dance · <b>3</b> cheer
     </div>
 
-    <div id="joystick"><div id="knob"></div></div>
+    <div id="joystick">
+      <span class="arrow up">▲</span><span class="arrow down">▼</span><span class="arrow left">◀</span><span class="arrow right">▶</span>
+      <div id="knob"></div>
+    </div>
+    <div id="hint-move" class="touch-hint">🕹️ Move</div>
+    <div id="hint-look" class="touch-hint">👆 Swipe to look around</div>
     <button id="jump" aria-label="Jump">⤒</button>
     <button id="punch" class="round-button" aria-label="Punch">👊</button>
     <button id="emote" class="round-button" aria-label="Fun actions">😀</button>

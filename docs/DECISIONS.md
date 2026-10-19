@@ -40,3 +40,10 @@
 | 2026-10-19 | Punch = **small shove** (~1.2 m stumble), not a big knockback | Funny and can push someone off an edge, but doesn't ruin the game. Shafin picked it. |
 | 2026-10-19 | Phone: **😀 menu** for wave/dance/cheer + its own **👊 button**. Computer: F/click, 1/2/3 | Keeps the phone screen clean; punch needs to be fast. |
 | 2026-10-19 | The **server decides** who got punched | Every phone sees the same shove. No arguing. |
+| 2026-10-19 | Teams share **one path** | Shafin's pick: crashing into rivals and punching them off bridges is the fun. |
+| 2026-10-19 | A team finishes when the **whole team** is in the finish zone | Shafin's pick: true teamwork, nobody gets left hanging. |
+| 2026-10-19 | **Medium** difficulty: gaps 1.5–2.5 m, one-brick steps, a checkpoint after every section | Shafin's pick: falls are funny but nobody rage-quits. |
+| 2026-10-19 | Moving parts are driven by a **shared clock** (`moverPose`), not sent in messages | Server and phones always agree where they are, and messages stay small. |
+| 2026-10-19 | Moving platforms **carry** players (floor speed added to your speed) | Without it, players slid off spinning discs like on ice. |
+| 2026-10-19 | 3-second countdown, **Play again** = fresh world | Fair start for everyone; restarting is instant. |
+| 2026-10-19 | Phone joystick is an **always-visible circle** in the bottom-left; only touching it moves you, anywhere else turns the camera | Friends didn't understand the invisible joystick. First-time hints ("Move", "Swipe to look around") fade after use or 12 s. |

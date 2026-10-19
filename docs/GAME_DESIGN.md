@@ -57,7 +57,25 @@ Inspired by a co-op rope game seen in a streamer video (players tied with stripe
 - Until checkpoints exist (Step 6), the team goes back to the start.
 - Checkpoints are glowing pads along the course. When any team member touches one, the team saves there.
 
-## The course (first version)
+## The course (first version): the Sky Course 🧱☁️
+
+| # | Section | What's there |
+|---|---|---|
+| 🏁 | Start | Big red platform, teams line up side by side |
+| 1 | Warm-up | Gaps and steps going up |
+| 2 | Zig-zag bridges | Thin 2-stud bridges with sharp turns |
+| 3 | Spinning discs | Two spinning discs to hop across + a sweeper bar to jump over |
+| 4 | Sliding blocks | Stepping stones sliding side to side + pusher blocks sweeping a bridge |
+| 5 | Brick maze | Walls too tall to jump; one gap per row, in a different spot each time |
+| 6 | Tower climb | Zig-zag stairs up into the sky → 🏆 finish arch |
+
+- There's a **checkpoint** (glowing pad + flag) after every section. Flags turn **gold** when your team reaches them.
+- The race starts with **3, 2, 1, GO!** (nobody can move during it). A timer counts up.
+- **Finish:** the **whole team** must stand on the checkered finish floor. Then a results card shows every team's time (🥇🥈🥉) and the best time tonight. The host can press **▶ Play again** or **🏠 Lobby**.
+- In team races, all teams share the **same path** (bump, tangle and punch each other).
+- Difficulty: **medium**. Falls happen and are funny, checkpoints are close.
+
+### Original notes
 
 - **1 course**, about **5 minutes** long if nobody falls.
 - **Theme: toy bricks in the sky.** Colorful LEGO-style blocks with studs, floating above clouds, bright blue sky.
@@ -75,7 +93,7 @@ Inspired by a co-op rope game seen in a streamer video (players tied with stripe
 
 | Device | Move | Jump | Look around |
 |---|---|---|---|
-| **Phone** | Left thumb joystick | Jump button (right side) | Drag on the screen |
+| **Phone** | **Movement circle** always shown in the bottom-left (with arrows + a "Move" hint) | Jump button (right side) | Swipe anywhere else on the screen |
 | **Computer** | W A S D / arrow keys | Space | Mouse |
 
 - No grab button in the first version (maybe later).

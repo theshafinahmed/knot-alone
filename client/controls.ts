@@ -1,5 +1,5 @@
 // Controls 🎮
-// Phone: left thumb = joystick (appears where you touch), right side = drag to look, big button = jump.
+// Phone: movement circle in the bottom-left corner, drag anywhere else to look, big button = jump.
 // Computer: WASD / arrows = move, Space = jump, mouse = look (click the game first).
 // Fun actions: phone = 👊 button + 😀 menu; computer = F or click to punch, 1 wave, 2 dance, 3 cheer.
 
@@ -26,6 +26,8 @@ function pressable(button: HTMLElement, onPress: () => void) {
 }
 
 const JOYSTICK_RADIUS = 55;
+/** You can start a touch this far outside the movement circle and still grab it (pixels). */
+const STICK_GRAB_MARGIN = 40;
 const TOUCH_LOOK_SPEED = 0.006;
 const MOUSE_LOOK_SPEED = 0.0025;
 const MIN_PITCH = -0.15;
@@ -59,6 +61,8 @@ export class Controls {
       punch: HTMLElement;
       emote: HTMLElement;
       emoteMenu: HTMLElement;
+      hintMove: HTMLElement;
+      hintLook: HTMLElement;
     },
   ) {
     window.addEventListener('keydown', (e) => {
@@ -160,16 +164,21 @@ export class Controls {
     }
 
     document.body.classList.add('touch');
-    if (e.clientX < window.innerWidth / 2 && this.stickPointer === null) {
+    // Touching the movement circle (or close to it) = walk. Anywhere else = turn the camera.
+    const ring = this.ui.joystick.getBoundingClientRect();
+    const centerX = ring.left + ring.width / 2;
+    const centerY = ring.top + ring.height / 2;
+    const nearRing = Math.hypot(e.clientX - centerX, e.clientY - centerY) <= ring.width / 2 + STICK_GRAB_MARGIN;
+    if (nearRing && this.stickPointer === null) {
       this.stickPointer = e.pointerId;
-      this.stickOrigin = { x: e.clientX, y: e.clientY };
-      this.ui.joystick.style.left = `${e.clientX}px`;
-      this.ui.joystick.style.top = `${e.clientY}px`;
+      this.stickOrigin = { x: centerX, y: centerY };
       this.ui.joystick.classList.add('active');
-      this.setKnob(0, 0);
+      this.onPointerMove(e); // start moving right away, towards where the thumb is
+      this.hideHint(this.ui.hintMove);
     } else if (this.lookPointer === null) {
       this.lookPointer = e.pointerId;
       this.lookLast = { x: e.clientX, y: e.clientY };
+      this.hideHint(this.ui.hintLook);
     }
   }
 
@@ -204,6 +213,22 @@ export class Controls {
       this.dragMouse = false;
     }
   }
+
+  private hideHint(hint: HTMLElement) {
+    hint.classList.add('gone');
+  }
+
+  /** Shows the first-time hints again (each new game). They also fade by themselves after a while. */
+  showHints() {
+    for (const hint of [this.ui.hintMove, this.ui.hintLook]) hint.classList.remove('gone');
+    clearTimeout(this.hintTimer);
+    this.hintTimer = window.setTimeout(() => {
+      this.hideHint(this.ui.hintMove);
+      this.hideHint(this.ui.hintLook);
+    }, 12_000);
+  }
+
+  private hintTimer: number | undefined;
 
   private setKnob(dx: number, dy: number) {
     this.ui.knob.style.transform = `translate(${dx}px, ${dy}px)`;

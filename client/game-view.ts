@@ -37,6 +37,11 @@ export class GameView {
   /** local clock − server clock (smallest seen), to line up the two clocks. */
   private clockOffset: number | null = null;
   ropeStates: { current: number; bend: { x: number; y: number; z: number } | null }[] = [];
+  /** Race time in seconds as drawn right now (negative during the countdown), or null before the first snapshot. */
+  raceTime: number | null = null;
+  /** Each team's [last checkpoint, finish time or −1], and the best time so far (−1 = none). */
+  teamProgress: [number, number][] = [];
+  bestTime = -1;
 
   constructor(
     private scene: THREE.Scene,
@@ -104,6 +109,11 @@ export class GameView {
     }
     const span = after.t - before.t;
     const t = span > 0 ? Math.min(1, Math.max(0, (renderTime - before.t) / span)) : 1;
+
+    // The race clock slides smoothly too (moving parts use it, so they match the server exactly).
+    this.raceTime = before.rt + (after.rt - before.rt) * t;
+    this.teamProgress = after.tp;
+    this.bestTime = after.bt;
 
     const beforeById = new Map(before.p.map((p) => [p[0], p]));
     for (const p1 of after.p) {

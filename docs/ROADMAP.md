@@ -61,10 +61,15 @@
 - [x] Shafin tried it with friends ✅ works
 
 ## Step 6 — The real course 🏗️
-- [ ] Build the ~5-minute toy-brick sky course
-- [ ] Obstacles: thin bridges, spinning discs, sliding blocks, maze, jumps
-- [ ] Checkpoints (team goes back to the last one after falling)
-- [ ] Finish line + timer + "who won" screen for team modes
+- [x] Build the toy-brick **Sky Course** (~270 m, 6 sections: warm-up, zig-zag bridges, spinning discs + sweeper, sliding stones + pushers, brick maze, tower climb)
+- [x] Obstacles: thin bridges, spinning discs, sliding blocks, maze, jumps
+- [x] Moving platforms carry you (spinning discs, sliding stones)
+- [x] Checkpoints (team goes back to the last one after falling) — 5 glowing pads with flags (turn gold when reached)
+- [x] 3-2-1-GO countdown, race timer, checkpoint pop-ups
+- [x] Finish line (the whole team must stand in it) + results card with 🥇🥈🥉, best time, Play again / Lobby
+- [x] Claude checked: every checkpoint spawns safely (chain of 6, teams of 2 and 3), autopilot + bot can do warm-up, bridges, maze and tower
+- [x] Shafin plays the full course with friends ✅ "the course is good"
+- [x] Always-visible movement circle on phones (friends couldn't find the old invisible joystick)
 
 ## Step 7 — Polish ✨
 - [ ] Sounds (jump, rope snap, fall, checkpoint, finish)

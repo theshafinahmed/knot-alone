@@ -2,7 +2,7 @@
 // Flow: join screen (name, color, hat) → lobby (everyone waits, host picks rope mode) → game.
 
 import * as THREE from 'three';
-import { createBrick } from './world/bricks';
+import { CourseView } from './world/course-view';
 import { createCloudField, createSkyBackground } from './world/sky';
 import { BlockyCharacter } from './character';
 import { Controls } from './controls';
@@ -10,8 +10,9 @@ import { Connection, playerToken } from './connection';
 import { GameView } from './game-view';
 import { JoinScreen, LobbyPanel, type Look } from './lobby';
 import { InviteCard } from './invite';
-import { TEST_COURSE } from '../shared/course';
-import { GameWorld, initPhysics } from '../shared/sim/world';
+import { SKY_COURSE } from '../shared/sky-course';
+import { RaceHud } from './race-hud';
+import { COUNTDOWN, GameWorld, initPhysics } from '../shared/sim/world';
 import type { LobbyPlayer, Phase, ServerMessage } from '../shared/messages';
 
 const $ = <T extends HTMLElement>(selector: string) => document.querySelector<T>(selector)!;
@@ -38,16 +39,17 @@ const sun = new THREE.DirectionalLight(0xffffff, 2.2);
 sun.position.set(12, 20, 8);
 scene.add(sun);
 
-const course = TEST_COURSE;
-for (const def of course.bricks) {
-  const brick = createBrick(def.width, def.depth, def.color, def.height);
-  brick.position.set(def.x, def.y, def.z);
-  scene.add(brick);
-}
+const course = SKY_COURSE;
+const courseView = new CourseView(course);
+scene.add(courseView.group);
 
-const clouds = createCloudField(36);
-clouds.position.z = -20;
-scene.add(clouds);
+// Clouds all along the course (each patch drifts slowly around its own middle).
+const clouds = [-20, -110, -200].map((z, i) => {
+  const field = createCloudField(30, i + 1);
+  field.position.set(i === 0 ? 0 : 14, 0, z);
+  scene.add(field);
+  return field;
+});
 
 // ---------- Camera (the eyes) ----------
 
@@ -64,7 +66,8 @@ resize();
 
 // The physics engine is only used here to find floors (for shadows and ropes). The server runs the real game.
 await initPhysics();
-const floors = new GameWorld(course);
+// (Only the still bricks — the moving parts aren't needed for that.)
+const floors = new GameWorld({ ...course, movers: [] });
 
 // ---------- State ----------
 
@@ -74,6 +77,9 @@ let lobbyPlayers: LobbyPlayer[] = [];
 let joined = false;
 let myLook: Look | null = null;
 let game: GameView | null = null;
+let race: RaceHud | null = null;
+/** Which team I'm in (index into the start message's teams), or −1 if only watching. */
+let myTeam = -1;
 
 // ---------- Talk to the server ----------
 
@@ -209,6 +215,8 @@ const controls = new Controls(canvas, {
   punch: $('#punch'),
   emote: $('#emote'),
   emoteMenu: $('#emote-menu'),
+  hintMove: $('#hint-move'),
+  hintLook: $('#hint-look'),
 });
 
 function startGame(message: Extract<ServerMessage, { type: 'start' }>) {
@@ -216,8 +224,16 @@ function startGame(message: Extract<ServerMessage, { type: 'start' }>) {
   for (const item of lineup) item.view.dispose();
   lineup = [];
   game = new GameView(scene, floors, message);
+  race?.dispose();
+  race = new RaceHud(message.teams, new Map(message.players.map((p) => [p.id, p])), {
+    playAgain: () => connection.send({ type: 'restart' }),
+    lobby: () => connection.send({ type: 'backToLobby' }),
+  });
+  myTeam = message.teams.findIndex((team) => !!myId && team.includes(myId));
+  courseView.setReached(0);
   phase = 'playing';
   controls.yaw = 0; // camera starts behind you, looking down the course
+  controls.showHints();
   snapCamera = true;
   refreshScreens();
 }
@@ -225,6 +241,9 @@ function startGame(message: Extract<ServerMessage, { type: 'start' }>) {
 function endGame() {
   game?.dispose();
   game = null;
+  race?.dispose();
+  race = null;
+  courseView.setReached(0);
   if (document.pointerLockElement) document.exitPointerLock();
   refreshScreens();
 }
@@ -275,7 +294,10 @@ joinScreen.show();
   get myId() {
     return myId;
   },
+  /** Test-only: set to { x, y, z, lookX, lookY, lookZ } to point the camera anywhere (null = normal). */
+  freeCam: null as null | { x: number; y: number; z: number; lookX: number; lookY: number; lookZ: number },
 };
+const testHook = (window as unknown as { knot: { freeCam: null | Record<'x' | 'y' | 'z' | 'lookX' | 'lookY' | 'lookZ', number> } }).knot;
 
 // ---------- Game loop (runs every frame) ----------
 
@@ -298,6 +320,21 @@ renderer.setAnimationLoop(() => {
     if (action && myId && game.members.has(myId)) connection.send({ type: 'action', action });
     game.update(dt);
 
+    // Moving parts follow the race clock, so they're in the same spot as on the server.
+    if (game.raceTime !== null) {
+      courseView.update(game.raceTime + COUNTDOWN);
+      race?.update({
+        raceTime: game.raceTime,
+        myTeam,
+        progress: game.teamProgress,
+        bestTime: game.bestTime,
+        checkpointCount: course.checkpoints.length,
+        amHost: amHost(),
+      });
+      const mine = game.teamProgress[myTeam];
+      if (mine) courseView.setReached(mine[0]);
+    }
+
     // Camera floats behind and above the player we follow.
     const id = followedId();
     const target = id ? game.positionOf(id) : null;
@@ -318,6 +355,7 @@ renderer.setAnimationLoop(() => {
     // Lobby: the camera looks at everyone lined up, gently swaying. It backs up on narrow screens.
     controls.consumeJump();
     controls.consumeAction();
+    courseView.update(time); // moving parts keep moving in the lobby too
     updateLineup(dt);
     const width = Math.max(lineup.length, 1) * LINEUP_SPACING + 2;
     const halfFov = Math.atan(Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect);
@@ -326,6 +364,11 @@ renderer.setAnimationLoop(() => {
     camera.lookAt(0, 0.4, LINEUP_Z);
   }
 
-  clouds.rotation.y += dt * 0.01;
+  for (const field of clouds) field.rotation.y += dt * 0.01;
+  const free = testHook.freeCam;
+  if (free) {
+    camera.position.set(free.x, free.y, free.z);
+    camera.lookAt(free.lookX, free.lookY, free.lookZ);
+  }
   renderer.render(scene, camera);
 });
