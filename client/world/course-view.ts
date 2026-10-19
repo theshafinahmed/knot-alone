@@ -7,22 +7,28 @@ import { moverPose, type CourseDef } from '../../shared/course';
 
 const PAD_GREEN = 0x4ade80;
 const PAD_GOLD = 0xfacc15;
+/** Studs are drawn only on bricks closer than this to the camera (meters). */
+const STUD_DISTANCE = 45;
 
 export class CourseView {
   readonly group = new THREE.Group();
   private movers: { object: THREE.Object3D; index: number }[] = [];
+  /** Every brick's studs, with where the brick is, so far-away studs can be hidden. */
+  private studs: { studs: THREE.Object3D; brick: THREE.Object3D; radius: number }[] = [];
   private flags: THREE.MeshStandardMaterial[] = [];
   private pads: THREE.MeshBasicMaterial[] = [];
 
   constructor(private course: CourseDef) {
     for (const def of course.bricks) {
       const brick = createBrickFrom(def);
+      this.trackStuds(brick, Math.max(def.width, def.depth) / 2);
       brick.position.set(def.x, def.y, def.z);
       this.group.add(brick);
     }
 
     course.movers.forEach((def, index) => {
       const object = createBrickFrom(def.brick);
+      this.trackStuds(object, Math.max(def.brick.width, def.brick.depth) / 2);
       this.group.add(object);
       this.movers.push({ object, index });
     });
@@ -32,7 +38,8 @@ export class CourseView {
       if (i === 0) return;
       const padMaterial = new THREE.MeshBasicMaterial({ color: PAD_GREEN, transparent: true, opacity: 0.45, depthWrite: false });
       const pad = new THREE.Mesh(new THREE.BoxGeometry(cp.width, 0.06, cp.depth), padMaterial);
-      pad.position.set(cp.x, cp.y + 0.23, cp.z); // just above the studs
+      // Its bottom sits clearly above the stud tops (0.2), so the two never flicker against each other.
+      pad.position.set(cp.x, cp.y + 0.27, cp.z);
       this.group.add(pad);
       this.pads.push(padMaterial);
 
@@ -56,6 +63,23 @@ export class CourseView {
     });
 
     if (course.finish) this.group.add(createFinishArch(course.finish));
+  }
+
+  private trackStuds(brick: THREE.Object3D, radius: number) {
+    const studs = brick.children.find((child) => (child as THREE.InstancedMesh).isInstancedMesh);
+    if (studs) this.studs.push({ studs, brick, radius });
+  }
+
+  /**
+   * Far away, studs are smaller than a pixel and shimmer when the camera moves. So we only show
+   * them on bricks near the camera (also makes the game faster on phones).
+   */
+  hideFarStuds(camera: THREE.Vector3) {
+    for (const { studs, brick, radius } of this.studs) {
+      const dx = brick.position.x - camera.x;
+      const dz = brick.position.z - camera.z;
+      studs.visible = Math.hypot(dx, dz) - radius < STUD_DISTANCE;
+    }
   }
 
   /** Moves the moving parts to where they are at `time` (world seconds, same clock as the server). */
@@ -83,7 +107,7 @@ function createFinishArch(zone: { x: number; y: number; z: number; width: number
     new THREE.BoxGeometry(zone.width, 0.06, zone.depth),
     new THREE.MeshBasicMaterial({ map: checker, transparent: true, opacity: 0.85, depthWrite: false }),
   );
-  floor.position.set(zone.x, zone.y + 0.23, zone.z);
+  floor.position.set(zone.x, zone.y + 0.27, zone.z);
   arch.add(floor);
 
   const height = 5;

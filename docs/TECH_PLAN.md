@@ -45,6 +45,20 @@
 
 ## The rope (the hardest part) 🪢
 
+> **Step 7 replaced the rope with a REAL one** (see "The real rope" right below). The older notes after it describe the first version and are kept for history.
+
+### The real rope (Step 7)
+
+- Each rope is a **chain of 11 links** (`ROPE.segments = 10` pieces) in `shared/sim/world.ts` → `updateRopes`. The end links are tied to the two players' body centers.
+- Every tick: the middle links fall (gravity) and swing (they remember last tick's position = "verlet"), then 8 rounds of: keep neighbors at most one link-length apart; link *i* at most *i* link-lengths from one end (snaps a tight rope straight); and every other round, **keep links out of solid things** (`pushRopeOutOfThings`: a link can't pass through anything — we trace a line from its last safe spot — and is pushed out of anything it touches; touching links get friction).
+- **How tight is it?** Like pulling a string tight: from one player, look along the chain as far as you can see in a straight line; the last visible link is a **wrap point** (it goes around an edge/corner/pusher). Rope length needed = player → wrap points → player. A loose rope sagging on the floor has no wrap points. If the needed length is more than the rope, both players get tugged towards their nearest wrap point (same gentle tug as before, max 5 m/s).
+- **Hanging** = really dangling (in the air, not rising from a jump, no floor right under your feet) on a nearly tight rope, held up by a wrap point (edge) or a friend standing above. Climbing/pulling/mantling work as before; the "ledge" for a friend-hold is the friend's feet.
+- **Moving blocks + rope:** pushers are 0.8 m tall: a tight rope at waist height slides over; a loose rope lying low gets caught and drags both players (tested).
+- Snapshots carry the 9 middle links of every rope; phones draw a smooth tube through them, ending at **knots on the players' belts**.
+- Tested with no screen: bot rescue, self-climb, loose rope on floor, pusher drag, 6-player speed (~1–2.5 ms per tick), and the course autopilot (all sections, 0 falls).
+
+### First version (Steps 3–6, replaced)
+
 - A real wiggly rope is too heavy for phones and too hard to keep in sync. So the rope is a few simple rules, all in `shared/sim/world.ts` (`updateRopes`):
   1. **Safety net:** a Rapier **rope joint** (max 4 m, straight line) between the two body centers. It never lets the rope stretch past full length.
   2. **Bending over edges:** the straight joint goes *through* bricks like a ghost. So every tick we check if a brick is between two tied players. If yes, we find the edge (walk along the brick top until the floor ends) and use path length = player→edge + edge→player. If that's too long, we tug both players' velocities toward the edge (max 5 m/s, equal weights). The lower player aims slightly *out past* the edge so they slide out from under the brick and up its side.
@@ -81,6 +95,16 @@
 - Look: blocky boxes (head, body, arms, legs), built in code, no model files needed.
 - "Floppy" fall: when falling or yanked hard, the character tilts and flails (fake ragdoll animation first; real ragdoll later only if it's worth it).
 - Name tag: text drawn above the head, always facing the camera.
+
+## Camera, clouds and glitch fixes (Step 7)
+
+- **Camera:** a line is traced from your head to where the camera wants to be; if a brick is in the way, the camera comes in front of it (fast), and goes back out gently. It also stays at least 0.8 m above the floor under it.
+- **Important:** the phone's floors-only `GameWorld` must be stepped once (`floors.world.step()`), or Rapier's scene index is empty and every ray/"floor below?" question answers "nothing" (that's why shadows had vanished).
+- **Clouds** are placed only away from the course (not within ~6 m of any brick at playing height), don't drift sideways, and hide when the camera is close.
+- **Flicker:** pads/finish floor sit at +0.27 (clearly above stud tops at +0.2); the blob shadow sits at +0.21 with polygon offset. Studs are hidden on bricks more than 45 m away (no shimmer, faster).
+- **Smoothness:** the drawing delay adapts to how bumpy the connection is (80–260 ms), so phones don't run out of snapshots on the internet.
+- **Events** for sounds/confetti: the server sends `ev` in snapshots (`hit`, `cp`, `fin`, `fall`); phones play them at the moment they're drawn.
+- **Sounds** (`client/sounds.ts`): a tiny Web Audio synth, no files. Mute is remembered on the phone.
 
 ## Phone performance rules 📱
 

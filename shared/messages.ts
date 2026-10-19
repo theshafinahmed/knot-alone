@@ -32,8 +32,17 @@ export const FLAG_GROUNDED = 1;
 export const FLAG_STUNNED = 2;
 export const FLAG_HANGING = 4;
 
-/** One rope in a snapshot: [current length] or [current length, bendX, bendY, bendZ]. */
-export type SnapRope = [number] | [number, number, number, number];
+/**
+ * One rope in a snapshot: [current length, x1, y1, z1, x2, y2, z2, …] — the rope's links between
+ * the two players (the two ends are tied to the players, so they aren't sent).
+ */
+export type SnapRope = number[];
+
+/**
+ * Something that just happened, for sounds and confetti:
+ * ['hit', x, y, z] a punch landed · ['cp', team, checkpoint] · ['fin', team] · ['fall', team]
+ */
+export type SnapEvent = ['hit', number, number, number] | ['cp', number, number] | ['fin', number] | ['fall', number];
 
 /** Game page → server */
 export type ClientMessage =
@@ -63,4 +72,14 @@ export type ServerMessage =
    * `rt` = race time in seconds (negative during the countdown). `tp` = each team's
    * [last checkpoint, finish time or −1]. `bt` = best finish time so far, or −1.
    */
-  | { type: 'snap'; t: number; p: SnapPlayer[]; r: SnapRope[]; rt: number; tp: [number, number][]; bt: number };
+  | {
+      type: 'snap';
+      t: number;
+      p: SnapPlayer[];
+      r: SnapRope[];
+      rt: number;
+      tp: [number, number][];
+      bt: number;
+      /** Things that happened since the last snapshot (only sent when there are some). */
+      ev?: SnapEvent[];
+    };

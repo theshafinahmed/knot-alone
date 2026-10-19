@@ -48,6 +48,17 @@ body {
   text-shadow: 0 2px 0 rgba(0, 0, 0, 0.25);
 }
 
+#mute {
+  pointer-events: auto;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(29, 53, 87, 0.6);
+  font-size: 15px;
+  cursor: pointer;
+}
+
 #status {
   padding: 4px 10px;
   border-radius: 999px;

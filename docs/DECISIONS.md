@@ -47,3 +47,8 @@
 | 2026-10-19 | Moving platforms **carry** players (floor speed added to your speed) | Without it, players slid off spinning discs like on ice. |
 | 2026-10-19 | 3-second countdown, **Play again** = fresh world | Fair start for everyone; restarting is instant. |
 | 2026-10-19 | Phone joystick is an **always-visible circle** in the bottom-left; only touching it moves you, anywhere else turns the camera | Friends didn't understand the invisible joystick. First-time hints ("Move", "Swipe to look around") fade after use or 12 s. |
+| 2026-10-19 | **Real rope**: chain of links (verlet) with collisions, instead of a straight line + tricks | Shafin wants the rope realistic: moving blocks must be able to push it, and it should drape and wrap like a real rope. |
+| 2026-10-19 | Rope tension measured by **line of sight** (wrap points), not by the sagging chain's length | Measuring the sagging chain made the rope pull way too early (felt 3 m long instead of 4). |
+| 2026-10-19 | "Hanging" needs **no floor right under your feet** | Otherwise hopping up a step counted as hanging, and bots started "rescuing" mid-jump. |
+| 2026-10-19 | Pushers lowered to **0.8 m** | A tight rope slides over (fair); a loose rope gets dragged (realistic, chaotic). At 1.2 m every rope got dragged off the bridge. |
+| 2026-10-19 | Sounds made by **code synth**, no audio files | Nothing to download or license; tiny. |

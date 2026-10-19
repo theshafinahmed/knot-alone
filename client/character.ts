@@ -5,8 +5,10 @@ import type { Hat } from '../shared/looks';
 import { ACTION_EMOJI, PUNCH, type ActionKind } from '../shared/actions';
 import { createHat } from './hats';
 import { createNameTag } from './nametag';
+import { ropeTexture } from './rope';
 
 const MIDDLE = 0.95; // middle of the body, from the feet
+const BELT_HEIGHT = 0.82; // where the rope belt sits, from the feet
 const SKIN = 0xffcc4d;
 const PANTS = 0x264653;
 
@@ -59,7 +61,7 @@ export class BlockyCharacter {
   private tumble = 0;
   private readonly bubble = new THREE.Sprite(new THREE.SpriteMaterial({ depthTest: false, transparent: true }));
 
-  constructor(color: number, options: { hat?: Hat; name?: string } = {}) {
+  constructor(color: number, options: { hat?: Hat; name?: string; belt?: boolean } = {}) {
     const shirt = mat(color);
     const skin = mat(SKIN);
     const pants = mat(PANTS);
@@ -105,9 +107,26 @@ export class BlockyCharacter {
     if (hat) {
       hat.position.y = 0.24; // top of the head
       head.add(hat);
+      // Things on the hat that spin (the propeller!).
+      hat.traverse((part) => {
+        if (part.userData.spin) this.spinners.push(part);
+      });
     }
 
     this.body.add(this.leftLeg, this.rightLeg, torso, this.leftArm, this.rightArm, head);
+
+    // 🎀 The rope belt around the waist (in a game, everyone is tied on).
+    if (options.belt) {
+      const beltTexture = ropeTexture.clone();
+      beltTexture.repeat.set(5, 1);
+      beltTexture.needsUpdate = true;
+      this.belt = new THREE.Mesh(
+        new THREE.BoxGeometry(0.86, 0.12, 0.48),
+        new THREE.MeshStandardMaterial({ map: beltTexture, roughness: 0.8 }),
+      );
+      this.belt.position.y = BELT_HEIGHT;
+      this.body.add(this.belt);
+    }
 
     // The name floats above the head (and above any hat). It doesn't tumble with the body.
     if (options.name) {
@@ -124,10 +143,42 @@ export class BlockyCharacter {
     // Soft round shadow on the floor (much cheaper than real shadows).
     const shadow = new THREE.Mesh(
       new THREE.CircleGeometry(0.55, 24),
-      new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.25, depthWrite: false }),
+      new THREE.MeshBasicMaterial({
+        color: 0x000000,
+        transparent: true,
+        opacity: 0.25,
+        depthWrite: false,
+        // Drawn as if a bit closer to the camera, so it never flickers against the floor.
+        polygonOffset: true,
+        polygonOffsetFactor: -2,
+        polygonOffsetUnits: -2,
+      }),
     );
     shadow.rotation.x = -Math.PI / 2;
     this.shadow = shadow;
+  }
+
+  private belt: THREE.Mesh | null = null;
+  private readonly spinners: THREE.Object3D[] = [];
+  private readonly beltCenter = new THREE.Vector3();
+
+  /**
+   * Where a rope tied to this player starts: the spot on the belt facing `towards` (in world
+   * space). Written into `out`. Falls back to the waist if there's no belt.
+   */
+  knotPoint(towards: THREE.Vector3, out: THREE.Vector3) {
+    if (this.belt) {
+      // Make sure the belt's position is up to date for this frame (no lag = no jitter).
+      this.belt.updateWorldMatrix(true, false);
+      this.belt.getWorldPosition(this.beltCenter);
+    }
+    else this.beltCenter.set(this.root.position.x, this.root.position.y + BELT_HEIGHT, this.root.position.z);
+    const dx = towards.x - this.beltCenter.x;
+    const dz = towards.z - this.beltCenter.z;
+    const flat = Math.hypot(dx, dz);
+    if (flat < 1e-4) return out.copy(this.beltCenter);
+    // The belt is a little wider than deep; 0.36 m out from the middle lands on its surface.
+    return out.set(this.beltCenter.x + (dx / flat) * 0.36, this.beltCenter.y, this.beltCenter.z + (dz / flat) * 0.36);
   }
 
   /** Removes this character from the scene and frees its memory. */
@@ -172,6 +223,7 @@ export class BlockyCharacter {
     floorDistance: number | null,
   ) {
     this.root.position.set(state.x, state.y, state.z);
+    for (const spinner of this.spinners) spinner.rotation.y += spinner.userData.spin * dt;
 
     // Turn smoothly towards where we're going.
     let diff = state.facing - this.facing;
@@ -308,7 +360,8 @@ export class BlockyCharacter {
       this.shadow.visible = false;
     } else {
       this.shadow.visible = true;
-      this.shadow.position.set(state.x, state.y - floorDistance + 0.02, state.z);
+      // Just above the stud tops (0.2), so it lies on the studs instead of fighting with the brick top.
+      this.shadow.position.set(state.x, state.y - floorDistance + 0.21, state.z);
       const s = Math.max(0.3, 1 - floorDistance / 12);
       this.shadow.scale.setScalar(s);
       (this.shadow.material as THREE.MeshBasicMaterial).opacity = 0.25 * s;

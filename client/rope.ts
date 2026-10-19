@@ -1,12 +1,12 @@
-// The rope you SEE 🪢. It's only a drawing: a red-and-white striped tube that
-// sags when loose and goes straight when tight. The real rope lives in the physics.
+// The rope you SEE 🪢 — a red-and-white striped tube through the rope's real links
+// (the server simulates them: they sag, drape over edges, lie on the floor, wrap around things).
+// Each end has a little knot where it's tied to a player's belt.
 
 import * as THREE from 'three';
 
-const SEGMENTS = 20;
 const THICKNESS = 0.07;
-/** Ropes are tied around the waist. */
-export const WAIST_HEIGHT = 0.95;
+/** How many pieces the tube is made of along its length (smoother = more). */
+const TUBE_SEGMENTS = 28;
 
 function stripeTexture() {
   const canvas = document.createElement('canvas');
@@ -20,81 +20,49 @@ function stripeTexture() {
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
   return texture;
 }
 
-const baseTexture = stripeTexture();
+/** The same stripes, shared by ropes and belts. */
+export const ropeTexture = stripeTexture();
+
+const knotGeometry = new THREE.SphereGeometry(0.1, 10, 8);
+const knotMaterial = new THREE.MeshStandardMaterial({ color: 0xd62828, roughness: 0.8 });
 
 export class RopeView {
-  readonly mesh: THREE.Mesh<THREE.TubeGeometry, THREE.MeshStandardMaterial>;
-  private readonly curve = new THREE.QuadraticBezierCurve3();
-  private readonly bentCurve = new THREE.CatmullRomCurve3(
-    [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()],
-    false,
-    'centripetal', // goes through the edge point without looping around
-  );
-  private readonly texture = baseTexture.clone();
+  readonly group = new THREE.Group();
+  private readonly mesh: THREE.Mesh<THREE.TubeGeometry, THREE.MeshStandardMaterial>;
+  private readonly knots: [THREE.Mesh, THREE.Mesh];
+  private readonly curve = new THREE.CatmullRomCurve3([], false, 'centripetal');
+  private readonly texture = ropeTexture.clone();
 
   constructor(length: number) {
     // One stripe every 25 cm.
     this.texture.repeat.x = length / 0.5;
+    this.texture.needsUpdate = true;
     this.mesh = new THREE.Mesh(
-      new THREE.TubeGeometry(this.curve, SEGMENTS, THICKNESS, 6),
+      new THREE.TubeGeometry(new THREE.LineCurve3(new THREE.Vector3(), new THREE.Vector3(0, 0, 1)), 1, THICKNESS, 6),
       new THREE.MeshStandardMaterial({ map: this.texture, roughness: 0.8 }),
     );
+    this.knots = [new THREE.Mesh(knotGeometry, knotMaterial), new THREE.Mesh(knotGeometry, knotMaterial)];
+    this.group.add(this.mesh, ...this.knots);
   }
 
-  /**
-   * a and b are the two players' feet positions.
-   * floorY is the height of the floor under the middle of the rope (null = no floor, it can hang freely).
-   * length is how long the rope is right now. bend is the edge it goes over (null = none).
-   */
-  update(
-    a: THREE.Vector3,
-    b: THREE.Vector3,
-    floorY: number | null,
-    length: number,
-    bend: { x: number; y: number; z: number } | null,
-  ) {
-    if (bend) {
-      // Over an edge: the rope is tight, from one player, over the edge, down to the other.
-      const [p0, p1, p2] = this.bentCurve.points;
-      p0.set(a.x, a.y + WAIST_HEIGHT, a.z);
-      p1.set(bend.x, bend.y + THICKNESS, bend.z);
-      p2.set(b.x, b.y + WAIST_HEIGHT, b.z);
-      this.rebuild(this.bentCurve);
-      return;
-    }
-
-    const start = this.curve.v0.set(a.x, a.y + WAIST_HEIGHT, a.z);
-    const end = this.curve.v2.set(b.x, b.y + WAIST_HEIGHT, b.z);
-    const distance = start.distanceTo(end);
-
-    // The looser the rope, the more it hangs down in the middle.
-    const slack = Math.max(0, length * length - distance * distance);
-    const sag = Math.sqrt(slack) * 0.5;
-    const middle = this.curve.v1.copy(start).add(end).multiplyScalar(0.5);
-    middle.y -= sag * 2; // a curve only reaches halfway to its middle point
-
-    // Don't let the rope sink into the floor: its lowest point rests on top of it.
-    if (floorY !== null) {
-      const lowestAllowed = floorY + THICKNESS + 0.2; // + 0.2 for the studs
-      // The curve's lowest point is (start + 2 × middle + end) / 4.
-      const minMiddleY = (4 * lowestAllowed - start.y - end.y) / 2;
-      middle.y = Math.max(middle.y, minMiddleY);
-    }
-
-    this.rebuild(this.curve);
-  }
-
-  private rebuild(curve: THREE.Curve<THREE.Vector3>) {
+  /** points = the whole rope, from one knot to the other (ends first and last). */
+  update(points: THREE.Vector3[]) {
+    if (points.length < 2) return;
+    this.curve.points = points;
     // The curve remembers its old length; tell it to measure again, or the tube squishes into a dot.
-    curve.updateArcLengths();
+    this.curve.updateArcLengths();
     this.mesh.geometry.dispose();
-    this.mesh.geometry = new THREE.TubeGeometry(curve, SEGMENTS, THICKNESS, 6);
+    this.mesh.geometry = new THREE.TubeGeometry(this.curve, TUBE_SEGMENTS, THICKNESS, 6);
+    this.knots[0].position.copy(points[0]);
+    this.knots[1].position.copy(points[points.length - 1]);
   }
 
   dispose() {
+    this.group.removeFromParent();
     this.mesh.geometry.dispose();
     this.mesh.material.dispose();
     this.texture.dispose();

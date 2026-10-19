@@ -14,6 +14,7 @@ import {
   type LobbyPlayer,
   type Phase,
   type ServerMessage,
+  type SnapEvent,
   type SnapPlayer,
   type SnapRope,
 } from '../shared/messages';
@@ -356,7 +357,17 @@ export class Room {
       if (bot.brain) inputs.set(bot.id, bot.brain.think(game.world, 'follow'));
     }
     game.world.step(inputs);
+    // Collect what happened (punches, checkpoints, finishes, falls) for the next snapshot.
+    for (const event of game.world.events) {
+      if (event.kind === 'hit') this.pendingEvents.push(['hit', round(event.x), round(event.y), round(event.z)]);
+      else if (event.kind === 'checkpoint') this.pendingEvents.push(['cp', event.team, event.index]);
+      else if (event.kind === 'finish') this.pendingEvents.push(['fin', event.team]);
+      else this.pendingEvents.push(['fall', event.team]);
+    }
+    game.world.events = [];
   }
+
+  private pendingEvents: SnapEvent[] = [];
 
   private sendSnapshot(now: number) {
     const game = this.game;
@@ -380,9 +391,11 @@ export class Room {
         round(s.actionTime ?? 0),
       ]);
     }
-    const r: SnapRope[] = game.world
-      .getRopes()
-      .map((rope) => (rope.bend ? [round(rope.current), round(rope.bend.x), round(rope.bend.y), round(rope.bend.z)] : [round(rope.current)]));
+    const r: SnapRope[] = game.world.getRopes().map((rope) => {
+      const out = [round(rope.current)];
+      for (const p of rope.points.slice(1, -1)) out.push(round(p.x), round(p.y), round(p.z));
+      return out;
+    });
     // Race clock, and each team's progress: [last checkpoint, finish time or −1].
     const progress = game.world.teamProgress;
     for (const team of progress) {
@@ -398,7 +411,9 @@ export class Room {
       rt: round(game.world.raceTime),
       tp: progress.map((team) => [team.checkpoint, team.finishedAt === null ? -1 : round(team.finishedAt)]),
       bt: this.bestTime === null ? -1 : round(this.bestTime),
+      ...(this.pendingEvents.length ? { ev: this.pendingEvents } : {}),
     });
+    this.pendingEvents = [];
   }
 
   // ---------- Sending ----------

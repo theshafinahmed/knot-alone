@@ -3,7 +3,7 @@
 
 import * as THREE from 'three';
 import { CourseView } from './world/course-view';
-import { createCloudField, createSkyBackground } from './world/sky';
+import { createCloudField, createCloudSea, createSkyBackground, createSun, updateClouds } from './world/sky';
 import { BlockyCharacter } from './character';
 import { Controls } from './controls';
 import { Connection, playerToken } from './connection';
@@ -12,6 +12,8 @@ import { JoinScreen, LobbyPanel, type Look } from './lobby';
 import { InviteCard } from './invite';
 import { SKY_COURSE } from '../shared/sky-course';
 import { RaceHud } from './race-hud';
+import { sounds } from './sounds';
+import { Confetti } from './confetti';
 import { COUNTDOWN, GameWorld, initPhysics } from '../shared/sim/world';
 import type { LobbyPlayer, Phase, ServerMessage } from '../shared/messages';
 
@@ -32,21 +34,60 @@ renderer.outputColorSpace = THREE.SRGBColorSpace;
 
 const scene = new THREE.Scene();
 scene.background = createSkyBackground();
-scene.fog = new THREE.Fog(0xbfe8ff, 60, 160);
+scene.fog = new THREE.Fog(0xd4efff, 60, 170);
 
 scene.add(new THREE.HemisphereLight(0xdff4ff, 0x6a8caf, 1.6));
-const sun = new THREE.DirectionalLight(0xffffff, 2.2);
+const sun = new THREE.DirectionalLight(0xfff6e0, 2.3);
 sun.position.set(12, 20, 8);
 scene.add(sun);
+
+// ☀️ The sun in the sky (far away, in the same direction the light comes from) and the cloud sea below.
+const sunDisc = createSun();
+scene.add(sunDisc);
+scene.add(createCloudSea());
 
 const course = SKY_COURSE;
 const courseView = new CourseView(course);
 scene.add(courseView.group);
 
-// Clouds all along the course (each patch drifts slowly around its own middle).
-const clouds = [-20, -110, -200].map((z, i) => {
-  const field = createCloudField(30, i + 1);
-  field.position.set(i === 0 ? 0 : 14, 0, z);
+// Clouds all along the course — but never on or right next to it (a cloud floating in front of the
+// camera hides everything). "Near the course" = within 12 m of any brick, at playing height.
+const courseBoxes = [...course.bricks, ...course.movers.map((m) => m.brick)].map((b) => ({
+  minX: b.x - b.width / 2 - 6,
+  maxX: b.x + b.width / 2 + 6,
+  minZ: b.z - b.depth / 2 - 6,
+  maxZ: b.z + b.depth / 2 + 6,
+  top: b.y,
+}));
+const nearCourse = (x: number, y: number, z: number, size: number) =>
+  courseBoxes.some(
+    (box) =>
+      x > box.minX - size * 2 &&
+      x < box.maxX + size * 2 &&
+      z > box.minZ - size * 2 &&
+      z < box.maxZ + size * 2 &&
+      y > box.top - 12 - size,
+  );
+// 🎉 Confetti pieces live in the scene for the whole game.
+const confetti = new Confetti();
+scene.add(confetti.mesh);
+
+// 🔊 Sound on/off button (remembered on this phone).
+const muteButton = $<HTMLButtonElement>('#mute');
+const showMute = () => (muteButton.textContent = sounds.muted ? '🔇' : '🔊');
+muteButton.addEventListener('click', () => {
+  sounds.setMuted(!sounds.muted);
+  showMute();
+  muteButton.blur();
+});
+showMute();
+
+const clouds = [
+  { x: 0, z: -20 },
+  { x: 14, z: -110 },
+  { x: 14, z: -200 },
+].map((center, i) => {
+  const field = createCloudField(30, i + 1, center, nearCourse);
   scene.add(field);
   return field;
 });
@@ -68,6 +109,9 @@ resize();
 await initPhysics();
 // (Only the still bricks — the moving parts aren't needed for that.)
 const floors = new GameWorld({ ...course, movers: [] });
+// The physics engine only builds its "where is everything" index on its first step. Without this,
+// every question ("is there a floor under me?", "is a wall in the way?") would answer "nothing".
+floors.world.step();
 
 // ---------- State ----------
 
@@ -230,6 +274,26 @@ function startGame(message: Extract<ServerMessage, { type: 'start' }>) {
     lobby: () => connection.send({ type: 'backToLobby' }),
   });
   myTeam = message.teams.findIndex((team) => !!myId && team.includes(myId));
+  // Sounds and confetti for things that happen in the game.
+  game.onEvent = (event) => {
+    if (event[0] === 'hit') {
+      sounds.hit();
+    } else if (event[0] === 'cp') {
+      const cp = course.checkpoints[event[2]];
+      if (cp) confetti.burst({ x: cp.x, y: cp.y + 0.5, z: cp.z }, event[1] === myTeam ? 90 : 40);
+      if (event[1] === myTeam) sounds.checkpoint();
+    } else if (event[0] === 'fin') {
+      const zone = course.finish;
+      if (zone) {
+        for (let i = 0; i < 4; i++) {
+          confetti.burst({ x: zone.x + (Math.random() - 0.5) * zone.width, y: zone.y + 0.5, z: zone.z + (Math.random() - 0.5) * zone.depth }, 70, 9);
+        }
+      }
+      sounds.finish();
+    } else if (event[0] === 'fall' && event[1] === myTeam) {
+      sounds.fall();
+    }
+  };
   courseView.setReached(0);
   phase = 'playing';
   controls.yaw = 0; // camera starts behind you, looking down the course
@@ -287,6 +351,7 @@ joinScreen.show();
 (window as unknown as { knot: object }).knot = {
   controls,
   scene,
+  camera,
   connection,
   get game() {
     return game;
@@ -304,6 +369,8 @@ const testHook = (window as unknown as { knot: { freeCam: null | Record<'x' | 'y
 const clock = new THREE.Clock();
 const cameraTarget = new THREE.Vector3();
 let snapCamera = true;
+/** How far the camera is from you right now (less than CAMERA_DISTANCE when a wall is in the way). */
+let cameraDistance = CAMERA_DISTANCE;
 
 renderer.setAnimationLoop(() => {
   const dt = Math.min(clock.getDelta(), 0.1);
@@ -313,11 +380,16 @@ renderer.setAnimationLoop(() => {
   if (game) {
     if (controls.consumeJump()) {
       jumps++;
+      sounds.jump();
       sendInput(now, true); // send jumps right away
     }
     sendInput(now);
     const action = controls.consumeAction();
-    if (action && myId && game.members.has(myId)) connection.send({ type: 'action', action });
+    if (action && myId && game.members.has(myId)) {
+      connection.send({ type: 'action', action });
+      if (action === 'punch') sounds.punchSwing();
+      else sounds.emote();
+    }
     game.update(dt);
 
     // Moving parts follow the race clock, so they're in the same spot as on the server.
@@ -344,12 +416,22 @@ renderer.setAnimationLoop(() => {
       else cameraTarget.lerp(goal, Math.min(1, dt * 12));
       snapCamera = false;
     }
+    // Where the camera wants to be: behind and above you.
     const flat = Math.cos(controls.pitch) * CAMERA_DISTANCE;
-    camera.position.set(
+    const wanted = new THREE.Vector3(
       cameraTarget.x + Math.sin(controls.yaw) * flat,
       cameraTarget.y + Math.sin(controls.pitch) * CAMERA_DISTANCE,
       cameraTarget.z + Math.cos(controls.yaw) * flat,
     );
+    // 📷 Never through walls: if a brick is between you and the camera, the camera comes closer
+    // (quickly), and goes back out (gently) once the way is clear.
+    const blocked = floors.hitDistance(cameraTarget, wanted);
+    const allowed = blocked === null ? CAMERA_DISTANCE : Math.max(1.2, blocked - 0.35);
+    cameraDistance = allowed < cameraDistance ? allowed : cameraDistance + (allowed - cameraDistance) * Math.min(1, dt * 3);
+    camera.position.copy(cameraTarget).lerp(wanted, cameraDistance / CAMERA_DISTANCE);
+    // ...and never down among the studs: keep the camera at least 0.8 m above the floor under it.
+    const below = floors.distanceToFloor(camera.position.x, camera.position.y + 2, camera.position.z, 4);
+    if (below !== null) camera.position.y = Math.max(camera.position.y, camera.position.y + 2 - below + 0.8);
     camera.lookAt(cameraTarget);
   } else {
     // Lobby: the camera looks at everyone lined up, gently swaying. It backs up on narrow screens.
@@ -364,7 +446,11 @@ renderer.setAnimationLoop(() => {
     camera.lookAt(0, 0.4, LINEUP_Z);
   }
 
-  for (const field of clouds) field.rotation.y += dt * 0.01;
+  confetti.update(dt);
+  // The sun stays far away in the same direction, wherever the camera goes.
+  sunDisc.position.set(camera.position.x + 120, camera.position.y + 110, camera.position.z - 160);
+  for (const field of clouds) updateClouds(field, time, camera.position);
+  courseView.hideFarStuds(camera.position);
   const free = testHook.freeCam;
   if (free) {
     camera.position.set(free.x, free.y, free.z);

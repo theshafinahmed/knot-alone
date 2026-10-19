@@ -11,7 +11,7 @@ export const SHIRT_COLORS = [
   0x2ec4b6, // teal
 ] as const;
 
-export const HATS = ['none', 'cap', 'tophat', 'crown', 'party', 'straw'] as const;
+export const HATS = ['none', 'cap', 'tophat', 'crown', 'party', 'straw', 'viking', 'beanie', 'chef', 'propeller'] as const;
 export type Hat = (typeof HATS)[number];
 
 export const HAT_EMOJI: Record<Hat, string> = {
@@ -21,6 +21,10 @@ export const HAT_EMOJI: Record<Hat, string> = {
   crown: '👑',
   party: '🎉',
   straw: '👒',
+  viking: '⚔️',
+  beanie: '🧶',
+  chef: '🍳',
+  propeller: '🚁',
 };
 
 export const NAME_MAX = 12;

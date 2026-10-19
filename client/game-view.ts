@@ -1,7 +1,8 @@
 // Draws the game the server (the boss) describes 🎬.
 // The server sends ~30 snapshots per second. We draw everyone a tiny bit in the past
-// (INTERP_DELAY) and slide smoothly between two snapshots, so movement looks smooth
-// even though updates arrive in little jumps.
+// and slide smoothly between two snapshots, so movement looks smooth even though updates
+// arrive in little jumps. How far in the past adapts to the connection: on a bumpy internet
+// connection we wait a bit longer, so we never run out of snapshots (which looks like a shake).
 
 import * as THREE from 'three';
 import { BlockyCharacter } from './character';
@@ -12,12 +13,17 @@ import {
   FLAG_STUNNED,
   type LobbyPlayer,
   type ServerMessage,
+  type SnapEvent,
 } from '../shared/messages';
 import type { GameWorld, PlayerState } from '../shared/sim/world';
 import { ACTION_FROM_CODE } from '../shared/actions';
 
 /** How far in the past we draw (ms). Bigger = smoother on bad Wi-Fi, but a bit more delay. */
-const INTERP_DELAY = 100;
+/** How far in the past we draw (ms): at least this on good Wi-Fi, up to the max on bumpy internet. */
+const MIN_DELAY = 80;
+const MAX_DELAY = 260;
+/** The server sends a snapshot about this often (ms). */
+const SNAPSHOT_GAP = 1000 / 30;
 const MAX_SNAPSHOTS = 40;
 
 type Snapshot = Extract<ServerMessage, { type: 'snap' }>;
@@ -32,16 +38,18 @@ interface Member {
 
 export class GameView {
   readonly members = new Map<string, Member>();
-  private ropes: { view: RopeView; a: Member; b: Member; length: number }[] = [];
+  private ropes: { view: RopeView; a: Member; b: Member; length: number; points: THREE.Vector3[] }[] = [];
   private snapshots: Snapshot[] = [];
   /** local clock − server clock (smallest seen), to line up the two clocks. */
   private clockOffset: number | null = null;
-  ropeStates: { current: number; bend: { x: number; y: number; z: number } | null }[] = [];
   /** Race time in seconds as drawn right now (negative during the countdown), or null before the first snapshot. */
   raceTime: number | null = null;
   /** Each team's [last checkpoint, finish time or −1], and the best time so far (−1 = none). */
   teamProgress: [number, number][] = [];
   bestTime = -1;
+  /** Called when something happens (a punch lands, a checkpoint…), at the moment you see it. */
+  onEvent: (event: SnapEvent) => void = () => {};
+  private queuedEvents: { t: number; event: SnapEvent }[] = [];
 
   constructor(
     private scene: THREE.Scene,
@@ -50,7 +58,7 @@ export class GameView {
     start: StartMessage,
   ) {
     for (const info of start.players) {
-      const view = new BlockyCharacter(info.color, { hat: info.hat, name: info.name });
+      const view = new BlockyCharacter(info.color, { hat: info.hat, name: info.name, belt: true });
       view.root.visible = false; // until the first snapshot says where they are
       view.shadow.visible = false;
       scene.add(view.root, view.shadow);
@@ -61,24 +69,34 @@ export class GameView {
       const mb = this.members.get(b);
       if (!ma || !mb) continue;
       const view = new RopeView(length);
-      view.mesh.visible = false;
-      scene.add(view.mesh);
-      this.ropes.push({ view, a: ma, b: mb, length });
+      view.group.visible = false;
+      scene.add(view.group);
+      this.ropes.push({ view, a: ma, b: mb, length, points: [] });
     }
   }
 
   dispose() {
     for (const member of this.members.values()) member.view.dispose();
-    for (const rope of this.ropes) {
-      rope.view.mesh.removeFromParent();
-      rope.view.dispose();
-    }
+    for (const rope of this.ropes) rope.view.dispose();
     this.members.clear();
     this.ropes = [];
   }
 
+  /** How bumpy the connection is: average lateness of snapshots (ms), and the delay we use. */
+  private jitter = 0;
+  private lastArrival: number | null = null;
+  private delay = 100;
+
   addSnapshot(snapshot: Snapshot) {
-    const offset = performance.now() - snapshot.t;
+    const now = performance.now();
+    if (this.lastArrival !== null) {
+      // How much later (or earlier) than expected did this one arrive? Keep a smooth average.
+      const lateness = Math.abs(now - this.lastArrival - SNAPSHOT_GAP);
+      this.jitter += (lateness - this.jitter) * (lateness > this.jitter ? 0.2 : 0.02);
+    }
+    this.lastArrival = now;
+    for (const event of snapshot.ev ?? []) this.queuedEvents.push({ t: snapshot.t, event });
+    const offset = now - snapshot.t;
     // The smallest offset is the one with the least network delay. Let it creep up slowly
     // too, in case the two clocks drift apart.
     this.clockOffset = this.clockOffset === null ? offset : Math.min(this.clockOffset + 0.02, offset);
@@ -94,7 +112,10 @@ export class GameView {
 
   update(dt: number) {
     if (this.clockOffset === null || this.snapshots.length === 0) return;
-    const renderTime = performance.now() - this.clockOffset - INTERP_DELAY;
+    // Two snapshots' worth of time, plus room for the connection's bumps. Changes slowly, so it's not noticeable.
+    const wantedDelay = Math.min(MAX_DELAY, Math.max(MIN_DELAY, SNAPSHOT_GAP * 2 + this.jitter * 3));
+    this.delay += (wantedDelay - this.delay) * Math.min(1, dt * 0.5);
+    const renderTime = performance.now() - this.clockOffset - this.delay;
 
     // Find the two snapshots around renderTime.
     let before = this.snapshots[0];
@@ -145,20 +166,36 @@ export class GameView {
       member.view.update(dt, state, this.floors.distanceToFloor(state.x, state.y + 0.1, state.z));
     }
 
-    this.ropeStates = after.r.map((r) => ({
-      current: r[0],
-      bend: r.length === 4 ? { x: r[1], y: r[2], z: r[3] } : null,
-    }));
+    // Ropes: the links between the players slide smoothly between snapshots too.
+    // The two ends are knots on the players' belts.
     this.ropes.forEach((rope, i) => {
       if (!rope.a.state || !rope.b.state) return;
-      const { shown: a } = rope.a;
-      const { shown: b } = rope.b;
-      const topY = Math.max(a.y, b.y) + 1;
-      const below = this.floors.distanceToFloor((a.x + b.x) / 2, topY, (a.z + b.z) / 2, 6);
-      const ropeState = this.ropeStates[i];
-      rope.view.mesh.visible = true;
-      rope.view.update(a, b, below === null ? null : topY - below, ropeState?.current ?? rope.length, ropeState?.bend ?? null);
+      const r0 = before.r[i];
+      const r1 = after.r[i];
+      if (!r1) return;
+      const links = (r1.length - 1) / 3;
+      // If the rope jumped far (a respawn), don't slide — just show where it is now.
+      const jumped = !r0 || r0.length !== r1.length || Math.abs(r0[1] - r1[1]) + Math.abs(r0[3] - r1[3]) > 5;
+      const k = jumped ? 1 : t;
+      while (rope.points.length < links + 2) rope.points.push(new THREE.Vector3());
+      rope.points.length = links + 2;
+      for (let j = 0; j < links; j++) {
+        const at = 1 + j * 3;
+        const from = jumped ? r1 : r0;
+        rope.points[j + 1].set(
+          from[at] + (r1[at] - from[at]) * k,
+          from[at + 1] + (r1[at + 1] - from[at + 1]) * k,
+          from[at + 2] + (r1[at + 2] - from[at + 2]) * k,
+        );
+      }
+      rope.a.view.knotPoint(rope.points[1] ?? rope.b.shown, rope.points[0]);
+      rope.b.view.knotPoint(rope.points[links] ?? rope.a.shown, rope.points[links + 1]);
+      rope.view.group.visible = true;
+      rope.view.update(rope.points);
     });
+
+    // Play events once the moment they happened is on screen.
+    while (this.queuedEvents.length && this.queuedEvents[0].t <= renderTime) this.onEvent(this.queuedEvents.shift()!.event);
 
     // Throw away snapshots we'll never need again.
     while (this.snapshots.length > 2 && this.snapshots[1].t < renderTime) this.snapshots.shift();

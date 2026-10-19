@@ -53,6 +53,14 @@ export const ROPE = {
   relaxSpeed: 1.5,
   /** Fastest the rope tugs players back together (m/s), so it pulls firmly but doesn't fling. */
   maxTug: 5,
+  /** The rope is a chain of little links. More links = bends around things more smoothly. */
+  segments: 10,
+  /** How thick the rope is for bumping into things (meters). */
+  radius: 0.08,
+  /** How many times per tick we straighten the chain (more = stiffer, but slower). */
+  iterations: 8,
+  /** How much a link keeps its swing each tick (less = calms down faster). */
+  damping: 0.96,
 };
 
 /** From the feet to the middle of the body. */
@@ -93,6 +101,13 @@ export interface PlayerState {
   actionTime?: number;
 }
 
+/** Something that happened in the game, for sounds and confetti on the phones. */
+export type WorldEvent =
+  | { kind: 'hit'; x: number; y: number; z: number }
+  | { kind: 'checkpoint'; team: number; index: number }
+  | { kind: 'finish'; team: number }
+  | { kind: 'fall'; team: number };
+
 export interface TeamProgress {
   /** Index into course.checkpoints (0 = the start). */
   checkpoint: number;
@@ -113,8 +128,15 @@ export interface RopeState {
   length: number;
   /** How long it is right now (shorter while someone climbs or gets pulled up). */
   current: number;
-  /** Where the rope bends over an edge (null = straight line between the two players). */
-  bend: Vec3 | null;
+  /** The rope's links, from player a to player b (both ends included). */
+  points: Vec3[];
+  /** Which links are touching something (bricks, walls, moving parts). */
+  touching: boolean[];
+  /**
+   * The links where the rope WRAPS around something (an edge, a wall corner, a pusher) — the
+   * spots that actually hold the rope. A loose rope just lying on the floor doesn't count.
+   */
+  wraps: number[];
 }
 
 interface PlayerBody {
@@ -162,6 +184,8 @@ export class GameWorld {
   /** Each team's progress: last checkpoint reached, and when they finished (race seconds). */
   private teams = new Map<number, TeamProgress>();
   private teamCount = 1;
+  /** Things that just happened (for sounds and confetti). The server collects and clears these. */
+  events: WorldEvent[] = [];
   private ropes: RopeState[] = [];
 
   constructor(course: CourseDef) {
@@ -266,7 +290,9 @@ export class GameWorld {
     if (!pa || !pb) return;
     const center = { x: 0, y: 0, z: 0 };
     this.world.createImpulseJoint(RAPIER.JointData.rope(length, center, center), pa.body, pb.body, true);
-    this.ropes.push({ a, b, length, current: length, bend: null });
+    const rope: RopeState = { a, b, length, current: length, points: [], touching: [], wraps: [] };
+    this.ropes.push(rope);
+    this.layRopeStraight(rope);
   }
 
   getRopes(): readonly RopeState[] {
@@ -299,7 +325,10 @@ export class GameWorld {
     for (const player of this.players.values()) {
       if (player.body.translation().y < this.course.fallLimit) fallenTeams.add(player.team);
     }
-    for (const team of fallenTeams) this.respawnTeam(team);
+    for (const team of fallenTeams) {
+      this.respawnTeam(team);
+      this.events.push({ kind: 'fall', team });
+    }
   }
 
   getState(id: string): PlayerState | undefined {
@@ -376,8 +405,18 @@ export class GameWorld {
         true,
       );
       target.stumble = PUNCH.stumble;
+      this.events.push({ kind: 'hit', x: to.x, y: to.y, z: to.z });
       target.action = null;
     }
+  }
+
+  /** How far you can go from `from` towards `to` before hitting something solid (null = nothing in the way). */
+  hitDistance(from: Vec3, to: Vec3): number | null {
+    const length = distance(from, to);
+    if (length < 1e-4) return null;
+    const ray = new RAPIER.Ray(from, scale(sub(to, from), 1 / length));
+    const hit = this.world.castRay(ray, length, true, RAPIER.QueryFilterFlags.EXCLUDE_DYNAMIC);
+    return hit ? hit.timeOfImpact : null;
   }
 
   /** How far below a point the nearest floor is (null = nothing below). Players don't count as floor. */
@@ -413,63 +452,130 @@ export class GameWorld {
       player.stumble = 0;
     }
     for (const rope of this.ropes) {
-      if (members.has(rope.a) || members.has(rope.b)) rope.current = rope.length;
+      if (!members.has(rope.a) && !members.has(rope.b)) continue;
+      rope.current = rope.length;
+      this.layRopeStraight(rope);
     }
   }
 
+  /** Puts a rope's links in a straight line between its two players (when tied, and after respawning). */
+  private layRopeStraight(rope: RopeState) {
+    const a = this.players.get(rope.a)!.body.translation();
+    const b = this.players.get(rope.b)!.body.translation();
+    const n = ROPE.segments;
+    rope.points = Array.from({ length: n + 1 }, (_, i) => ({
+      x: a.x + ((b.x - a.x) * i) / n,
+      y: a.y + ((b.y - a.y) * i) / n,
+      z: a.z + ((b.z - a.z) * i) / n,
+    }));
+    rope.touching = rope.points.map(() => false);
+    this.ropePrevious.set(rope, rope.points.map((p) => ({ ...p })));
+    this.ropeSafe.set(rope, rope.points.map((p) => ({ ...p })));
+    this.ropeNormals.set(rope, rope.points.map(() => null));
+    rope.wraps = [];
+  }
+
+  /** Where each rope link was last tick (that's how a link remembers how fast it's moving). */
+  private ropePrevious = new Map<RopeState, Vec3[]>();
+
   /**
-   * Our own rope rules, on top of the physics engine's simple rope (which is a straight line
-   * that goes right through bricks, like a ghost).
-   *  - A real rope bends over edges. If a brick is between two tied players, we find the edge
-   *    and the rope goes over it (length = player→edge + edge→player).
-   *  - Ropes can get shorter: a hanging player climbs (tap jump), a friend on top pulls it in.
-   *    When nobody hangs on it any more, it lets back out to full length.
+   * The real rope 🪢. Each rope is a chain of little links:
+   *  - the two end links are tied to the players' waists,
+   *  - the links in between fall with gravity and swing,
+   *  - links can't get further apart than (rope length ÷ number of links),
+   *  - links can't go inside bricks, walls or moving parts (they get pushed out).
+   * So the rope drapes over edges, lies on the floor, wraps around walls, and gets shoved by
+   * moving blocks. If the chain ends up longer than the rope (it had to go around something,
+   * or got pushed), the rope tugs the players, which is how a pusher hitting your rope drags you.
+   *
+   * Ropes can also get shorter: a hanging player climbs (tap jump), a friend on top pulls it in.
+   * When nobody hangs on it any more, it lets back out to full length.
    */
   private updateRopes() {
     const hungThisTick = new Set<PlayerBody>();
+    const n = ROPE.segments;
+    const gravityStep = 25 * TICK * TICK;
 
     for (const rope of this.ropes) {
       const pa = this.players.get(rope.a)!;
       const pb = this.players.get(rope.b)!;
       const a = pa.body.translation();
       const b = pb.body.translation();
-      rope.bend = this.findBend(a, b);
-      const aIsUpper = a.y >= b.y;
+      const points = rope.points;
+      const previous = this.ropePrevious.get(rope)!;
 
-      // Each player is pulled towards a "corner": the other player (straight rope), or the edge.
-      // The lower player aims a little bit OUT past the edge, so they slide out from under the
-      // brick and up its side (instead of getting stuck pressed against its bottom).
-      let cornerA: Vec3 = b;
-      let cornerB: Vec3 = a;
-      if (rope.bend) {
-        const upper = aIsUpper ? a : b;
-        const outX = rope.bend.x - upper.x;
-        const outZ = rope.bend.z - upper.z;
-        const outLength = Math.hypot(outX, outZ) || 1;
-        const pushOut = PLAYER.radius + 0.15;
-        const outside = {
-          x: rope.bend.x + (outX / outLength) * pushOut,
-          y: rope.bend.y,
-          z: rope.bend.z + (outZ / outLength) * pushOut,
+      // 1) The ends follow the players. The links in between swing and fall.
+      points[0] = { x: a.x, y: a.y, z: a.z };
+      points[n] = { x: b.x, y: b.y, z: b.z };
+      for (let i = 1; i < n; i++) {
+        const p = points[i];
+        const old = previous[i];
+        const moved = {
+          x: p.x + (p.x - old.x) * ROPE.damping,
+          y: p.y + (p.y - old.y) * ROPE.damping - gravityStep,
+          z: p.z + (p.z - old.z) * ROPE.damping,
         };
-        // (While scrambling over the edge, aim at the edge itself, not out past it.)
-        cornerA = aIsUpper || pa.mantle.time > 0 ? rope.bend : outside;
-        cornerB = !aIsUpper && pb.mantle.time <= 0 ? outside : rope.bend;
+        previous[i] = p;
+        points[i] = moved;
       }
 
-      const da = distance(a, cornerA);
-      const db = distance(b, cornerB);
-      const total = rope.bend ? da + db : da;
+      // 2) Keep neighboring links close together, and keep links out of solid things.
+      const linkLength = rope.current / n;
+      rope.touching.fill(false);
+      this.ropeNormals.get(rope)!.fill(null);
+      for (let k = 0; k < ROPE.iterations; k++) {
+        for (let i = 0; i < n; i++) {
+          const p = points[i];
+          const q = points[i + 1];
+          const dx = q.x - p.x;
+          const dy = q.y - p.y;
+          const dz = q.z - p.z;
+          const length = Math.hypot(dx, dy, dz);
+          if (length <= linkLength || length < 1e-6) continue;
+          // The end links are tied to players and don't move here (the players get tugged below instead).
+          const wp = i === 0 ? 0 : 1;
+          const wq = i + 1 === n ? 0 : 1;
+          if (wp + wq === 0) continue;
+          const push = (length - linkLength) / length / (wp + wq);
+          points[i] = { x: p.x + dx * push * wp, y: p.y + dy * push * wp, z: p.z + dz * push * wp };
+          points[i + 1] = { x: q.x - dx * push * wq, y: q.y - dy * push * wq, z: q.z - dz * push * wq };
+        }
+        // Link i can never be further than i links from one end (and n−i from the other).
+        // That's always true for a real rope, and it makes a tight rope snap straight right away
+        // instead of sagging like a slow spring.
+        for (let i = 1; i < n; i++) {
+          points[i] = within(points[i], points[0], i * linkLength);
+          points[i] = within(points[i], points[n], (n - i) * linkLength);
+        }
+        if (k % 2 === 1) this.pushRopeOutOfThings(rope, previous);
+      }
 
-      // Who is hanging? The lower player, in the air, on a nearly tight rope, below the edge/friend.
-      // (Climbing aims at the edge itself, so near the top you climb onto the brick.)
-      // You can only hang from an edge, or from a friend who is standing on something
-      // (otherwise two falling players would "climb" each other up into the sky 🚀).
-      if (total > rope.current * 0.9) {
-        const aHasSupport = !!rope.bend || pb.grounded;
-        const bHasSupport = !!rope.bend || pa.grounded;
-        if (!pa.grounded && aHasSupport && cornerA.y > a.y + 0.3) this.markHanging(pa, rope, rope.bend ?? cornerA, hungThisTick);
-        if (!pb.grounded && bHasSupport && cornerB.y > b.y + 0.3) this.markHanging(pb, rope, rope.bend ?? cornerB, hungThisTick);
+      // 3) Where does the rope wrap around something? Like pulling a string tight: from one player,
+      //    look along the chain as far as you can see in a straight line. The last link you can
+      //    see is where the rope bends around something (an edge, a corner, a pusher). Then do
+      //    the same from there. A loose rope sagging onto the floor doesn't block the view, so it
+      //    doesn't count — only things the rope really goes AROUND.
+      rope.wraps = this.ropeWrapPoints(points);
+
+      // How long the rope has to be: straight from one player, around each wrap point, to the other.
+      // (A loose sag doesn't make it "longer" — only going around things does.)
+      let path = 0;
+      let from = points[0];
+      for (const i of rope.wraps) {
+        path += distance(from, points[i]);
+        from = points[i];
+      }
+      path += distance(from, points[n]);
+
+      // Who is hanging? A player in the air, on a nearly tight rope, held up by an edge the rope
+      // goes over, or by a friend who is standing on something. (Two falling players can't hold
+      // each other up — otherwise they'd "climb" each other into the sky 🚀.)
+      if (path > rope.current * 0.92) {
+        const supportA = this.ropeSupport(rope, 'a', pb);
+        const supportB = this.ropeSupport(rope, 'b', pa);
+        // (Held from above: the support must be higher than your feet.)
+        if (supportA && supportA.y > a.y - FEET_TO_CENTER + 0.3 && this.dangling(pa)) this.markHanging(pa, rope, supportA, hungThisTick);
+        if (supportB && supportB.y > b.y - FEET_TO_CENTER + 0.3 && this.dangling(pb)) this.markHanging(pb, rope, supportB, hungThisTick);
       }
 
       // Shorten (friend pulling in a hanging player) or let back out (nobody hanging).
@@ -478,17 +584,21 @@ export class GameWorld {
       if (pulled) rope.current = Math.max(ROPE.minLength, rope.current - ROPE.pullSpeed * TICK);
       else if (!someoneHangs) rope.current = Math.min(rope.length, rope.current + ROPE.relaxSpeed * TICK);
 
-      if (total <= rope.current || da < 1e-3 || db < 1e-3) continue;
+      if (path <= rope.current) continue;
 
-      // Too long: tug both players towards their corner.
-      const ua = scale(sub(cornerA, a), 1 / da);
-      const ub = scale(sub(cornerB, b), 1 / db);
+      // 4) Too long: tug both players along the rope (towards their neighboring link).
+      // Each player is pulled towards the nearest wrap point (or straight towards the other player).
+      const firstWrap = rope.wraps.length ? points[rope.wraps[0]] : points[n];
+      const lastWrap = rope.wraps.length ? points[rope.wraps[rope.wraps.length - 1]] : points[0];
+      const ua = direction(points[0], firstWrap);
+      const ub = direction(points[n], lastWrap);
+      if (!ua || !ub) continue;
       const va = pa.body.linvel();
       const vb = pb.body.linvel();
-      // How fast the rope path is getting longer right now...
+      // How fast the rope is getting longer right now...
       const growing = -(dot(va, ua) + dot(vb, ub));
       // ...and we want it to shrink back, firmly but not flinging anyone.
-      const wanted = -Math.min((total - rope.current) * 8, ROPE.maxTug);
+      const wanted = -Math.min((path - rope.current) * 8, ROPE.maxTug);
       const fix = growing - wanted;
       if (fix <= 0) continue;
       // Equal weights: each player gets half the tug.
@@ -508,43 +618,124 @@ export class GameWorld {
     }
   }
 
+  /**
+   * Keeps rope links out of bricks, walls and moving parts (players don't count).
+   *  1) A link can't pass THROUGH anything: we trace a line from its last safe spot to where it
+   *     wants to go, and if that line hits something, the link stops at the surface.
+   *  2) A link resting on something (or pushed into it by a moving part) is pushed back out.
+   * A link touching something also slows down a lot (rope rubbing on a brick has friction).
+   */
+  private pushRopeOutOfThings(rope: RopeState, previous: Vec3[]) {
+    const points = rope.points;
+    const safe = this.ropeSafe.get(rope)!;
+    const normals = this.ropeNormals.get(rope)!;
+    const r = ROPE.radius;
+    const flags = RAPIER.QueryFilterFlags.EXCLUDE_DYNAMIC;
+    for (let i = 1; i < points.length - 1; i++) {
+      // 1) No passing through.
+      const from = safe[i];
+      const wanted = points[i];
+      const travel = distance(from, wanted);
+      if (travel > 1e-4) {
+        const dir = scale(sub(wanted, from), 1 / travel);
+        const hit = this.world.castRayAndGetNormal(new RAPIER.Ray(from, dir), travel + r, true, flags);
+        if (hit && hit.timeOfImpact < travel + r) {
+          const stop = Math.max(0, hit.timeOfImpact - r);
+          points[i] = add(add(from, scale(dir, stop)), scale(hit.normal, 0.01));
+          rope.touching[i] = true;
+          normals[i] = { x: hit.normal.x, y: hit.normal.y, z: hit.normal.z };
+        }
+      }
+
+      // 2) Push out of anything it's resting on or was shoved into.
+      const p = points[i];
+      const hit = this.world.projectPoint(p, false, flags);
+      if (!hit) continue;
+      const s = hit.point;
+      const dx = p.x - s.x;
+      const dy = p.y - s.y;
+      const dz = p.z - s.z;
+      const gap = Math.hypot(dx, dy, dz);
+      if (!hit.isInside && gap >= r + 0.02) continue;
+      rope.touching[i] = true;
+      if (gap < 1e-6) {
+        points[i] = { x: s.x, y: s.y + r, z: s.z };
+        normals[i] = { x: 0, y: 1, z: 0 };
+      } else if (hit.isInside) {
+        // Inside: go back out through the nearest side, plus the rope's thickness.
+        points[i] = { x: s.x - (dx / gap) * r, y: s.y - (dy / gap) * r, z: s.z - (dz / gap) * r };
+        normals[i] = { x: -dx / gap, y: -dy / gap, z: -dz / gap };
+      } else {
+        if (gap < r) points[i] = { x: s.x + (dx / gap) * r, y: s.y + (dy / gap) * r, z: s.z + (dz / gap) * r };
+        normals[i] = { x: dx / gap, y: dy / gap, z: dz / gap };
+      }
+      // Friction: lose half the swing.
+      const now = points[i];
+      const old = previous[i];
+      previous[i] = { x: now.x - (now.x - old.x) * 0.5, y: now.y - (now.y - old.y) * 0.5, z: now.z - (now.z - old.z) * 0.5 };
+    }
+    for (let i = 1; i < points.length - 1; i++) safe[i] = { ...points[i] };
+  }
+
+  /** The links where the rope bends around something (see "Where does the rope wrap" above). */
+  private ropeWrapPoints(points: Vec3[]): number[] {
+    const n = points.length - 1;
+    const wraps: number[] = [];
+    let from = 0;
+    while (from < n) {
+      let next = from + 1;
+      while (next < n && this.clearLine(points[from], points[next + 1])) next++;
+      if (next >= n) break;
+      wraps.push(next);
+      from = next;
+    }
+    return wraps;
+  }
+
+  /** True if nothing solid (bricks, walls, moving parts) is in the way between a and b. */
+  private clearLine(a: Vec3, b: Vec3) {
+    const length = distance(a, b);
+    if (length < 0.05) return true;
+    const dir = scale(sub(b, a), 1 / length);
+    // A little shorter than the full line, so links resting on the same surface can "see" each other.
+    return !this.world.castRay(new RAPIER.Ray(a, dir), length - 0.05, true, RAPIER.QueryFilterFlags.EXCLUDE_DYNAMIC);
+  }
+
+  /** The last spot each rope link was known to be outside of everything. */
+  private ropeSafe = new Map<RopeState, Vec3[]>();
+  /** For links touching something: which way is "out" of that surface. */
+  private ropeNormals = new Map<RopeState, (Vec3 | null)[]>();
+
+  /**
+   * What holds up the player at one end of a rope: the nearest spot (counting from that player)
+   * where the rope wraps over something solid — like the edge of a brick — or the friend at the
+   * other end if they're standing on something. null = nothing (falling together).
+   */
+  private ropeSupport(rope: RopeState, end: 'a' | 'b', other: PlayerBody): Vec3 | null {
+    const n = rope.points.length - 1;
+    if (rope.wraps.length) return rope.points[end === 'a' ? rope.wraps[0] : rope.wraps[rope.wraps.length - 1]];
+    if (!other.grounded) return null;
+    // Held by a friend standing above: the "ledge" is the floor they stand on (their feet).
+    const friend = rope.points[end === 'a' ? n : 0];
+    return { x: friend.x, y: friend.y - FEET_TO_CENTER, z: friend.z };
+  }
+
+  /**
+   * Really dangling in the air — not just hopping up a step: in the air, not still rising from a
+   * jump, and no floor right under your feet.
+   */
+  private dangling(player: PlayerBody) {
+    if (player.grounded || player.body.linvel().y > 2) return false;
+    const p = player.body.translation();
+    const below = this.distanceToFloor(p.x, p.y - FEET_TO_CENTER + 0.05, p.z, 1.6);
+    return below === null;
+  }
+
   private markHanging(player: PlayerBody, rope: RopeState, point: Vec3, hung: Set<PlayerBody>) {
     player.hangPoint = { ...point };
     player.hangRope = rope;
     player.hangGrace = PLAYER.hangGrace;
     hung.add(player);
-  }
-
-  /** If a brick blocks the straight line between a and b, returns (roughly) the edge the rope bends over. */
-  private findBend(a: Vec3, b: Vec3): Vec3 | null {
-    const [upper, lower] = a.y >= b.y ? [a, b] : [b, a];
-    const gap = distance(upper, lower);
-    if (gap < 0.5) return null;
-    const down = scale(sub(lower, upper), 1 / gap);
-    const flags = RAPIER.QueryFilterFlags.EXCLUDE_DYNAMIC;
-    const hit = this.world.castRayAndGetNormal(new RAPIER.Ray(upper, down), gap, true, flags);
-    if (!hit) return null;
-    const point = add(upper, scale(down, hit.timeOfImpact));
-
-    // Hit a wall (not a floor): bend right there, around the wall.
-    if (hit.normal.y < 0.7) return point;
-
-    // Hit the top of a brick: walk along the top towards the lower player until the floor ends.
-    // That's the edge the rope goes over (works even if they've swung in underneath the brick).
-    const flatX = lower.x - point.x;
-    const flatZ = lower.z - point.z;
-    const flat = Math.hypot(flatX, flatZ);
-    if (flat < 1e-3) return { ...point, y: point.y + 0.05 };
-    const stepX = (flatX / flat) * 0.1;
-    const stepZ = (flatZ / flat) * 0.1;
-    let edge = point;
-    for (let i = 1; i <= 40; i++) {
-      const probe = { x: point.x + stepX * i, y: point.y + 0.1, z: point.z + stepZ * i };
-      const floor = this.world.castRay(new RAPIER.Ray(probe, { x: 0, y: -1, z: 0 }), 0.25, true, flags);
-      if (!floor) break;
-      edge = probe;
-    }
-    return { x: edge.x, y: point.y + 0.05, z: edge.z };
   }
 
   /**
@@ -571,6 +762,8 @@ export class GameWorld {
     if (!player) return;
     player.body.setTranslation({ x, y: y + FEET_TO_CENTER, z }, true);
     player.body.setLinvel({ x: 0, y: 0, z: 0 }, true);
+    // The rope comes along too.
+    for (const rope of this.ropes) if (rope.a === id || rope.b === id) this.layRopeStraight(rope);
   }
 
   /** Lines everyone up again after all players were added (lanes depend on how many teams there are). */
@@ -581,6 +774,7 @@ export class GameWorld {
       const cp = this.course.checkpoints[0];
       player.facing = Math.atan2(cp.dirX, cp.dirZ);
     }
+    for (const rope of this.ropes) this.layRopeStraight(rope);
   }
 
   /** Checkpoints and the finish line. */
@@ -601,7 +795,10 @@ export class GameWorld {
       const progress = this.teams.get(player.team)!;
       const p = player.body.translation();
       for (let i = progress.checkpoint + 1; i < checkpoints.length; i++) {
-        if (inside(p, checkpoints[i])) progress.checkpoint = i;
+        if (inside(p, checkpoints[i])) {
+          progress.checkpoint = i;
+          this.events.push({ kind: 'checkpoint', team: player.team, index: i });
+        }
       }
     }
 
@@ -612,6 +809,7 @@ export class GameWorld {
       const members = [...this.players.values()].filter((p) => p.team === team);
       if (members.length > 0 && members.every((m) => inside(m.body.translation(), finish))) {
         progress.finishedAt = this.raceTime;
+        this.events.push({ kind: 'finish', team });
       }
     }
   }
@@ -784,4 +982,18 @@ function brickCollider(brick: BrickDef) {
       ? RAPIER.ColliderDesc.cylinder(height / 2, brick.width / 2)
       : RAPIER.ColliderDesc.cuboid(brick.width / 2, height / 2, brick.depth / 2);
   return desc.setFriction(0.8);
+}
+
+/** The direction from a to b (length 1), or null if they're at the same spot. */
+function direction(a: Vec3, b: Vec3): Vec3 | null {
+  const length = distance(a, b);
+  return length < 1e-6 ? null : scale(sub(b, a), 1 / length);
+}
+
+/** Moves point p towards center so it's at most `max` away from it. */
+function within(p: Vec3, center: Vec3, max: number): Vec3 {
+  const d = distance(p, center);
+  if (d <= max || d < 1e-6) return p;
+  const k = max / d;
+  return { x: center.x + (p.x - center.x) * k, y: center.y + (p.y - center.y) * k, z: center.z + (p.z - center.z) * k };
 }

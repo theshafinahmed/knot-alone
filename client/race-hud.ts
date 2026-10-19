@@ -1,6 +1,7 @@
 // The race on screen ⏱️: big "3, 2, 1, GO!", the timer, checkpoint pop-ups and the results card.
 
 import type { LobbyPlayer } from '../shared/messages';
+import { sounds } from './sounds';
 
 const $ = <T extends HTMLElement>(selector: string) => document.querySelector<T>(selector)!;
 const hex = (color: number) => `#${color.toString(16).padStart(6, '0')}`;
@@ -70,6 +71,8 @@ export class RaceHud {
       el.classList.remove('pop');
       void el.offsetWidth; // restart the pop animation
       el.classList.add('pop');
+      if (countdown === 'GO!') sounds.go();
+      else if (countdown) sounds.countdownBeep();
     }
 
     // ✅ Checkpoint pop-up when my team reaches a new one.

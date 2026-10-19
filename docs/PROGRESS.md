@@ -4,12 +4,13 @@
 
 ## Right now
 
-- **Current step:** Step 6 (the real course) is ✅ **done**. Shafin played the Sky Course with friends: "the course is good". The phone movement circle is always visible now. **Next up: Step 7, polish (sounds, confetti, hats, nicer sky).** (Nice to know later: how long a real race takes.) Step 5 is still open for one thing: a test with a friend on a *different* internet. See [ROADMAP.md](ROADMAP.md).
+- **Current step:** Step 7 (polish) is ✅ **done**. Shafin played with friends: "no glitches left". **Next up: Step 8, share it on GitHub (README, license, screenshots, make it public).** Step 5 is still open for one thing: a test with a friend on a *different* internet. See [ROADMAP.md](ROADMAP.md).
+- **Step 7 adds:** a **real rope** (chain of links: drapes, lies on the floor, wraps around walls, gets dragged by moving blocks — which drags you), rope **belts + knots** on players, camera that never goes through walls or the floor, clouds kept off the course, flicker fixes, smoothness on bumpy internet, shadows working again, **sounds** (🔊/🔇), **confetti**, 4 new hats (⚔️ 🧶 🍳 🚁), sun + sea of clouds.
 - **Step 6 adds:** the **Sky Course** (6 sections, ~270 m): warm-up → zig-zag bridges → spinning discs + sweeper → sliding stones + pushers → brick maze → tower → finish arch. 5 checkpoints (flags turn gold), 3-2-1-GO, race timer, checkpoint pop-ups, results card (🥇🥈🥉, best time, Play again / Lobby). Moving platforms carry you. The whole team must stand in the finish.
 - **Step 5½ adds:** 👋 wave, 💃 dance, 🎉 cheer, 👊 punch (small shove). Phone: 👊 button left of jump, 😀 above jump opens a menu. Computer: F or click = punch, 1/2/3 = wave/dance/cheer. Emoji bubble over your head.
 - **Step 5 adds:** `npm start` now also opens a free Cloudflare tunnel and prints a public `https://….trycloudflare.com` link + a QR code. The lobby has a 📨 Invite button (QR + link + Share/Copy). `npm run start:local` = Wi-Fi only. You can run the server and play only from your phone: join from the phone first and you're the host.
 - **What works:** `npm start` builds the page and starts the boss server on port 3000. **The server runs the game now** (physics + bots); phones only send controls and draw. Flow: join screen (name, shirt color, hat) → lobby (everyone stands on the start platform with name tags; host picks rope mode ⛓️ chain / 👥 teams of 3 / 👫 teams of 2, adds 0–5 🤖 bots, presses ▶ Start) → game (each team in its own lane; ropes, catching, climbing, rescues as in Step 3; falling only resets your own team). Host buttons in the game: ↺ restart (key **R**), 🏠 back to lobby. A phone that drops out or reloads gets its character back (it's dead weight while away). Max 6 players (people + bots).
-- **Test hook:** `window.knot` in the browser console gives `controls`, `scene`, `connection`, `game`, `myId`, and `freeCam` (set `{x, y, z, lookX, lookY, lookZ}` to look anywhere; `null` = normal camera).
+- **Test hook:** `window.knot` in the browser console gives `controls`, `scene`, `camera`, `connection`, `game`, `myId`, and `freeCam` (set `{x, y, z, lookX, lookY, lookZ}` to look anywhere; `null` = normal camera).
 - **Known rough edges:** your own character waits for the server too (no prediction), so there's a small delay (~0.1–0.2 s). After a reload you tap "Join game" again (name is remembered). The test course has one thin bridge, so in team mode the side lanes have to steer onto it. Bots are clumsy on purpose. Humans can't "pull" a hanging friend yet (only bots can).
 - **Git:** ✅ set up. Private repo at https://github.com/theshafinahmed/knot-alone (branch `main`). Make it public at Step 8.
 - **Computer setup:** Windows 11, Node.js v24, npm v11, git v2.54 already installed.
@@ -44,7 +45,9 @@ npm start       # builds the page + starts the server
 | `client/hats.ts` | `createHat(hat)`: cap, top hat, crown, party hat, straw hat, built from simple shapes. |
 | `client/nametag.ts` | `createNameTag(name, color)`: the floating name pill (visible through bricks). |
 | `client/character.ts` | `BlockyCharacter`: the box guy, walk/jump/fall/tumble/starfish animations, blob shadow. Feet at y = 0. |
-| `client/rope.ts` | `RopeView`: draws one striped rope (sag, rests on floor, bends over edges). Drawing only. |
+| `client/rope.ts` | `RopeView`: draws one striped rope through the real links sent by the server, with a knot at each end. Drawing only. |
+| `client/sounds.ts` | `sounds`: tiny code synth (jump, punch, hit, countdown, checkpoint, finish, fall), mute remembered. |
+| `client/confetti.ts` | `Confetti`: bursts of paper pieces (checkpoints, finish). |
 | `client/controls.ts` | `Controls`: keyboard, mouse look (pointer lock or drag), touch joystick, touch look, jump button. |
 | `client/world/bricks.ts` | `createBrick`, `createDisc`, `createBrickFrom(def)`: LEGO-style bricks/discs with instanced studs. Top surface at y = 0. |
 | `client/world/course-view.ts` | `CourseView`: draws the whole course, moves the moving parts by the clock, checkpoint pads + flags (gold when reached), finish arch. |
@@ -53,7 +56,7 @@ npm start       # builds the page + starts the server
 | `client/connection.ts` | `Connection` (live line to the server, auto-reconnects) and `playerToken()` (secret id saved on the phone). |
 | `shared/course.ts` | Course recipe types (bricks, discs, moving parts, checkpoints, finish), `moverPose` / `moverVelocityAt` (where a moving part is / how fast it moves), and the small `TEST_COURSE`. |
 | `shared/sky-course.ts` | **The Sky Course** layout, section by section. Change the course here. |
-| `shared/sim/world.ts` | `GameWorld`: Rapier physics world, players (capsules), running, jumping, bracing, stun, ropes (`tie`, `updateRopes`: edge bending, shortening, hanging, climbing, mantle), team respawn. Runs at 60 steps/sec. |
+| `shared/sim/world.ts` | `GameWorld`: Rapier physics world, players (capsules), running, jumping, bracing, stun, the **real rope** (`tie`, `updateRopes`: chain of links, collisions, wrap points, shortening, hanging, climbing, mantle), moving parts, checkpoints, finish, events, team respawn. Runs at 60 steps/sec. |
 | `shared/sim/bots.ts` | `BotBrain`: robot buddy that follows the trail of the player ahead, jumps where they jumped, stops at cliffs, pulls up a hanging leader, climbs when hanging. |
 | `shared/config.ts` | Port (3000) and socket path. |
 | `shared/messages.ts` | Message shapes between server and page (join, input, lobby, start, snap…). |
@@ -84,3 +87,5 @@ npm start       # builds the page + starts the server
 | 2026-10-19 | Step 6: the Sky Course. New course recipe (discs, moving parts, checkpoints, finish), moving platforms that carry you, per-team checkpoints, 3-2-1-GO, race timer, results card, Play again. Fixed during testing: a chain of 6 spawned off checkpoint platforms (now centered), a bridge overlapping a corner, pushers too fast, a too-short checkpoint platform. Headless tests + autopilot all pass; checked every section in the browser with the free camera. Waiting on Shafin's game night. |
 | 2026-10-19 | Shafin's friends couldn't find the invisible joystick. Now the movement circle is always shown in the bottom-left with arrows; only touching it (or near it) moves you, anywhere else turns the camera. "Move" / "Swipe to look around" hints fade after use. Tested on a phone-sized screen. |
 | 2026-10-19 | Shafin: the movement circle works on his phone and the course is good. Step 6 done and pushed. |
+| 2026-10-19 | Step 7 polish. Shafin reported glitches (camera through walls, rope through things, jitter, flicker, clouds blocking the view) and asked for a realistic rope + visible rope ties. Rebuilt the rope as a chain of links with collisions (took several rounds: links tunneling through corners, a sagging chain pulling too early → fixed with straightening + line-of-sight wrap points; false 'hanging' while hopping steps; a test bug where teleport left the rope behind). Added belts/knots, camera collision + floor clearance, cloud placement, flicker fixes, adaptive smoothing, events → sounds + confetti, 4 hats, sun + cloud sea. Found that the phone's course copy was never stepped (no shadows, no camera collision) — fixed. All headless tests + browser checks pass. |
+| 2026-10-19 | Shafin played the polished game with friends: no glitches left. Step 7 done and pushed. |

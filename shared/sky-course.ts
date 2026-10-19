@@ -94,7 +94,8 @@ for (const [z, phase] of [
   [-142, 4.2],
 ] as const) {
   movers.push({
-    brick: b(14, 3.6, z, 2, 1.6, COLORS.purple, 1.2),
+    // 0.8 m tall: a tight rope at waist height slides over the top, a loose rope lying low gets dragged.
+    brick: b(14, 3.2, z, 2, 1.6, COLORS.purple, 0.8),
     motion: { kind: 'slide', axis: 'x', distance: 4.5, period: 5, phase },
   });
 }

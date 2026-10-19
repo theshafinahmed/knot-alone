@@ -72,10 +72,18 @@
 - [x] Always-visible movement circle on phones (friends couldn't find the old invisible joystick)
 
 ## Step 7 — Polish ✨
-- [ ] Sounds (jump, rope snap, fall, checkpoint, finish)
-- [ ] Confetti at checkpoints and the finish
-- [ ] More hats
-- [ ] Clouds, nicer sky
+- [x] **Real rope**: a chain of links that falls, swings, drapes over edges, lies on the floor, wraps around walls and gets dragged by moving blocks (which drags you)
+- [x] Rope belt + knot on every player (you can see where the rope is tied)
+- [x] Camera never goes through walls or into the floor
+- [x] Clouds kept away from the course (and hidden if the camera gets close)
+- [x] No more flicker (pads, finish floor, shadows); far studs hidden
+- [x] Smooth on bumpy internet (the smoothing buffer adapts)
+- [x] Shadows under players work again (the phone's course copy was never "switched on")
+- [x] Sounds (jump, punch, hit, countdown, checkpoint, finish, fall) + 🔊/🔇 button
+- [x] Confetti at checkpoints and the finish
+- [x] More hats: ⚔️ Viking, 🧶 beanie, 🍳 chef, 🚁 propeller (it spins!)
+- [x] Nicer sky: sun, sea of clouds far below, richer colors
+- [x] Shafin + friends played it ✅ "no glitches left"
 
 ## Step 8 — Share it on GitHub 🚀
 - [ ] Simple README: "how to host a game night in 3 steps"
