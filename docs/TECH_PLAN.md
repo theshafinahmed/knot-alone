@@ -105,6 +105,7 @@
 - **Smoothness:** the drawing delay adapts to how bumpy the connection is (80–260 ms), so phones don't run out of snapshots on the internet.
 - **Events** for sounds/confetti: the server sends `ev` in snapshots (`hit`, `cp`, `fin`, `fall`); phones play them at the moment they're drawn.
 - **Sounds** (`client/sounds.ts`): a tiny Web Audio synth, no files. Mute is remembered on the phone.
+- **No zooming** (`client/no-zoom.ts`): some phones (iPhones) ignore the page's "no zoom" setting, so pinch gestures, two-finger moves on the page, quick double taps (not on buttons/inputs) and Ctrl+wheel are blocked in code. Buttons use `touch-action: pan-y` — never `manipulation`, which still allows pinch-zoom. The game's own controls use pointer events, which these blocks don't affect.
 
 ## Phone performance rules 📱
 

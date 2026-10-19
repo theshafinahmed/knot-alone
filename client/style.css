@@ -86,7 +86,7 @@ body {
   background: rgba(29, 53, 87, 0.65);
   color: #fff;
   font: 700 14px system-ui, sans-serif;
-  touch-action: manipulation;
+  touch-action: pan-y; /* "manipulation" would still allow pinch-zoom */
   cursor: pointer;
 }
 
@@ -175,7 +175,7 @@ body {
   background: #eef3f8;
   font-size: 22px;
   cursor: pointer;
-  touch-action: manipulation;
+  touch-action: pan-y; /* "manipulation" would still allow pinch-zoom */
 }
 
 .swatches button.picked {
@@ -194,7 +194,7 @@ button.big {
   color: #1d3557;
   font: 900 20px system-ui, sans-serif;
   cursor: pointer;
-  touch-action: manipulation;
+  touch-action: pan-y; /* "manipulation" would still allow pinch-zoom */
 }
 
 button.big:active {
@@ -305,7 +305,7 @@ button.big:disabled {
   color: #1d3557;
   font: 800 14px system-ui, sans-serif;
   cursor: pointer;
-  touch-action: manipulation;
+  touch-action: pan-y; /* "manipulation" would still allow pinch-zoom */
 }
 
 .segmented button.picked {
@@ -332,7 +332,7 @@ button.big:disabled {
   color: #1d3557;
   font: 900 22px system-ui, sans-serif;
   cursor: pointer;
-  touch-action: manipulation;
+  touch-action: pan-y; /* "manipulation" would still allow pinch-zoom */
 }
 
 #bots-count {
@@ -762,7 +762,7 @@ body.touch.playing .round-button {
   border-radius: 50%;
   background: #eef3f8;
   font-size: 28px;
-  touch-action: manipulation;
+  touch-action: pan-y; /* "manipulation" would still allow pinch-zoom */
 }
 
 #emote-menu.hidden,

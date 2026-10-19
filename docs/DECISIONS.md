@@ -55,3 +55,4 @@
 | 2026-10-19 | **MIT license**, © Shafin Ahmed | Shafin's pick: the simplest, most common open-source license. |
 | 2026-10-19 | Commits use Shafin's **GitHub noreply email**; the old history was rewritten before going public | Keeps his Gmail private in a public repo. |
 | 2026-10-19 | Repo is **public** | Step 8 goal: share it so anyone can host a game night. |
+| 2026-10-19 | **Block page zoom in code**, not just in the page settings | iPhones ignore `user-scalable=no`; friends were zooming the screen by accident while playing. |

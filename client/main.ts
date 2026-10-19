@@ -14,6 +14,7 @@ import { SKY_COURSE } from '../shared/sky-course';
 import { RaceHud } from './race-hud';
 import { sounds } from './sounds';
 import { Confetti } from './confetti';
+import { blockZoom } from './no-zoom';
 import { COUNTDOWN, GameWorld, initPhysics } from '../shared/sim/world';
 import type { LobbyPlayer, Phase, ServerMessage } from '../shared/messages';
 
@@ -22,6 +23,7 @@ const canvas = $<HTMLCanvasElement>('#game');
 const statusLabel = $('#status');
 
 if (window.matchMedia('(pointer: coarse)').matches) document.body.classList.add('touch');
+blockZoom();
 
 // ---------- Renderer (the painter) ----------
 
