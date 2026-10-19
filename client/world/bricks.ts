@@ -11,12 +11,14 @@ const STUD_HEIGHT = 0.2;
 
 // One shared stud shape, reused for every stud in the game (cheap for phones).
 const studGeometry = new THREE.CylinderGeometry(STUD_RADIUS, STUD_RADIUS, STUD_HEIGHT, 16);
+studGeometry.userData.shared = true; // (shared things are never thrown away when a course is swapped)
 
 const materials = new Map<number, THREE.MeshStandardMaterial>();
 function materialFor(color: number) {
   let material = materials.get(color);
   if (!material) {
     material = new THREE.MeshStandardMaterial({ color, roughness: 0.55 });
+    material.userData.shared = true;
     materials.set(color, material);
   }
   return material;
@@ -120,6 +122,7 @@ function createTrampoline(width: number, depth: number, color: number, height = 
 }
 
 const beltBody = new THREE.MeshStandardMaterial({ color: 0x3a4250, roughness: 0.7 });
+for (const material of [iceMaterial, iceShine, trampolinePad, trampolineRim, beltBody]) material.userData.shared = true;
 
 /**
  * ➡️ A conveyor belt: a dark brick with yellow arrows on top that slide the way the belt pushes.

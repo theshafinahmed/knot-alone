@@ -77,6 +77,20 @@ export class CourseView {
     }
   }
 
+  /** Frees this course's shapes, paint and pictures (when a new random world replaces it). Shared ones stay. */
+  dispose() {
+    this.group.traverse((child) => {
+      const mesh = child as THREE.Mesh;
+      if (mesh.geometry && !mesh.geometry.userData.shared) mesh.geometry.dispose();
+      const materials = mesh.material ? (Array.isArray(mesh.material) ? mesh.material : [mesh.material]) : [];
+      for (const material of materials) {
+        if (material.userData.shared) continue;
+        (material as THREE.MeshStandardMaterial).map?.dispose();
+        material.dispose();
+      }
+    });
+  }
+
   private trackStuds(brick: THREE.Object3D, radius: number) {
     const studs = brick.children.find((child) => (child as THREE.InstancedMesh).isInstancedMesh);
     if (studs) this.studs.push({ studs, brick, radius });

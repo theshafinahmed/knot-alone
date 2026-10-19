@@ -12,7 +12,8 @@ import { WebSocketServer } from 'ws';
 import { PORT as DEFAULT_PORT, SOCKET_PATH } from '../shared/config';
 import { initPhysics } from '../shared/sim/world';
 import { Room } from './room';
-import { COURSES, COURSE_PATH, DEFAULT_COURSE } from '../shared/courses';
+import { COURSES, COURSE_PATH, type CourseSpec } from '../shared/courses';
+import { DIFFICULTIES, LENGTHS, type Difficulty, type WorldLength } from '../shared/rooms/world-maker';
 import { openTunnel, type TunnelHandle } from './tunnel';
 import QRCode from 'qrcode';
 
@@ -20,13 +21,29 @@ import QRCode from 'qrcode';
 const portArg = process.argv.find((arg) => arg.startsWith('--port='))?.split('=')[1];
 const PORT = Number(portArg) || Number(process.env.PORT) || DEFAULT_PORT;
 
-/** Which course to play. Change it with `npm start -- --course=lab` (names are in shared/courses.ts). */
-const courseArg = process.argv.find((arg) => arg.startsWith('--course='))?.split('=')[1];
-if (courseArg && !COURSES[courseArg]) {
-  console.error(`❌ No course called "${courseArg}". Try one of: ${Object.keys(COURSES).join(', ')}`);
+/** Reads a `--name=value` setting from the command line. */
+const arg = (name: string) => process.argv.find((a) => a.startsWith(`--${name}=`))?.split('=')[1];
+
+/**
+ * Which course to play. Change it with `npm start -- --course=lab` (names are in shared/courses.ts).
+ * 🎲 `--course=random` = a new random world every round. Add `--difficulty=easy|medium|hard`,
+ * `--length=short|normal|long`, or `--seed=123` to always play that one world.
+ */
+const courseArg = arg('course') ?? 'random'; // (the host can change it in the lobby)
+if (courseArg !== 'random' && !COURSES[courseArg]) {
+  console.error(`❌ No course called "${courseArg}". Try one of: random, ${Object.keys(COURSES).join(', ')}`);
   process.exit(1);
 }
-const COURSE_ID = courseArg ?? DEFAULT_COURSE;
+const difficulty = (arg('difficulty') ?? 'medium') as Difficulty;
+const length = (arg('length') ?? 'normal') as WorldLength;
+if (!DIFFICULTIES.includes(difficulty) || !LENGTHS.includes(length)) {
+  console.error(`❌ Difficulty must be ${DIFFICULTIES.join(' / ')} and length ${LENGTHS.join(' / ')}.`);
+  process.exit(1);
+}
+const COURSE: CourseSpec & { difficulty: Difficulty; length: WorldLength } =
+  courseArg === 'random'
+    ? { id: 'random', seed: Number(arg('seed')) || 0, difficulty, length }
+    : { id: courseArg, difficulty, length };
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const CLIENT_DIR = path.resolve(ROOT, '../dist/client');
@@ -56,7 +73,7 @@ const server = http.createServer((req, res) => {
   const urlPath = decodeURIComponent((req.url ?? '/').split('?')[0]);
   // The page asks which course is on, so it draws the same one the server plays.
   if (urlPath === COURSE_PATH) {
-    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' }).end(JSON.stringify({ id: COURSE_ID }));
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' }).end(JSON.stringify(room.courseSpec));
     return;
   }
   let filePath = path.resolve(CLIENT_DIR, '.' + urlPath);
@@ -114,7 +131,7 @@ function compressed(filePath: string, encoding: 'br' | 'gzip') {
 // The physics engine has to load before the room can run a game.
 await initPhysics();
 
-const room = new Room(COURSES[COURSE_ID]);
+const room = new Room(COURSE);
 const wss = new WebSocketServer({ server, path: SOCKET_PATH });
 wss.on('connection', (socket) => room.connect(socket));
 
@@ -159,7 +176,8 @@ server.listen(PORT, '0.0.0.0', async () => {
 
   console.log('');
   console.log('🪢  Knot Alone server is running!');
-  if (COURSE_ID !== DEFAULT_COURSE) console.log(`   Course: ${COURSES[COURSE_ID].name}`);
+  if (courseArg === 'random') console.log(`   Course: 🎲 a new random world every round (the host can change it in the lobby)`);
+  else console.log(`   Course: ${COURSES[courseArg].name} (the host can change it in the lobby)`);
   console.log('');
   console.log(`   On this computer:   http://localhost:${PORT}`);
   for (const { name, address } of wifi) {

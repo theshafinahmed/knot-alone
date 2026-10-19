@@ -984,6 +984,29 @@ button.big:disabled {
   opacity: 0.35;
 }
 
+/* Difficulty + length rows under the course picker: shorter buttons, close together. */
+#random-settings .seg.small {
+  margin-top: 6px;
+}
+
+.seg.small button {
+  height: 38px;
+  font-size: 14px;
+}
+
+#host-controls .lbl + .seg {
+  margin-top: 8px;
+}
+
+#host-controls #random-settings + .lbl {
+  margin-top: 16px;
+}
+
+#course-info {
+  margin: 12px 0 0;
+  text-align: center;
+}
+
 .bots-row {
   display: flex;
   align-items: center;
@@ -2333,4 +2356,24 @@ body.joining #status {
 .sw,
 .chip {
   touch-action: pan-x pan-y;
+}
+
+/* Phones upright: the lobby sheet got taller with the course picker, so it scrolls inside itself
+   and the Start button sticks to the bottom (always reachable). */
+@media (max-width: 760px) and (min-height: 521px) {
+  .lobby {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .lobby #lobby-list {
+    flex: none;
+    overflow: visible;
+  }
+
+  #host-controls .btn-main {
+    position: sticky;
+    bottom: 0;
+    box-shadow: 0 6px 0 #d49a00, 0 16px 0 16px #fff;
+  }
 }

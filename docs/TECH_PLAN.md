@@ -92,6 +92,15 @@
 - **Snapping together** (`assembleCourse`): start platform → room → 8×8 pad with a checkpoint → room → … → finish platform. 10f will choose the rooms with the dice and the difficulty budget, then call this.
 - **Room Gallery** (`npm start -- --course=gallery`): every room once at middle level + 3 combo examples, for trying them out.
 
+## Random worlds (Step 10f) 🎲
+
+- **Settings:** seed + difficulty (easy / medium / hard) + length (short 4 rooms, normal 8, long 12).
+- **Budget:** each difficulty has a danger budget per room (easy 2.3, medium 3.4, hard 4.6), a "how hard" range for rooms (easy 0–0.35, medium 0.3–0.7, hard 0.6–1), a max for any single room, and a combo chance. For each slot the maker tries 6 random rooms and keeps the one whose cost is closest to what's left of the budget ÷ rooms left. Result over 2,700 test worlds: average room danger lands within ±0.4 of the target.
+- **Variety:** first room is a warm-up (steps, zig-zag or treadmill), no room twice in a row, no room more than twice, piece limit 220 for slow phones.
+- **Same world everywhere:** the server picks the seed and sends `course: { id: 'random', seed, difficulty, length }` in the `start` message (and from `/course` on page load). Every phone runs the same `makeWorld`, so the worlds match exactly. When the world changes, the page throws away the old bricks, clouds and floors copy (`setCourse` in `client/main.ts`) and builds the new ones.
+- **Lobby picker (10h):** the host's choice lives on the server (`Room.choice`: course id + difficulty + length) and goes to everyone in the `lobby` message (`course`, `courses`). The host sends `setup { course | difficulty | length }`. The world itself is only rolled when Start is pressed.
+- **When a new world is rolled:** Start from the lobby, and Play again after someone finished. Retry in the middle of a race keeps the world. The best time resets with every new world.
+
 ## Fun actions (wave, punch, dance, cheer)
 
 - List and numbers live in `shared/actions.ts` (how long each lasts, punch reach/strength/cooldown).

@@ -11,7 +11,8 @@ You host it **on your own computer**. Friends join **from anywhere in the world*
 ## ✨ What's in it
 
 - 🪢 **A real rope.** It sags, drapes over edges, lies on the floor, wraps around walls and gets dragged by moving blocks. Catch a falling friend, pull them back up, or climb up yourself.
-- 🧱 **The Sky Course** — 6 sections: warm-up jumps, thin zig-zag bridges, spinning discs with a sweeper bar, sliding stones and pusher blocks, a brick maze, and a tower climb to the finish.
+- 🎲 **A new random world every round.** The host picks **Easy / Medium / Hard** and **Short / Normal / Long**, and the game snaps a fresh course together from 14 kinds of rooms: elevators, conveyor belts, ice, swinging hammers, gusty wind, plus all the Sky Course parts. Easy worlds stay gentle, hard ones mix nasty combos (icy hammer bridge, anyone?).
+- 🧱 **The Sky Course** — the hand-made classic, 6 sections: warm-up jumps, thin zig-zag bridges, spinning discs with a sweeper bar, sliding stones and pusher blocks, a brick maze, and a tower climb to the finish.
 - 👥 **Rope modes:** one big chain, teams of 3, or teams of 2 racing on the same path (bump into rivals and punch them off bridges 😈).
 - 🎭 **Fun actions:** wave 👋, dance 💃, cheer 🎉, punch 👊 (a small shove) and kick 🦵 (a big shove).
 - 🧍 **Blocky characters** with your name above your head, 8 shirt colors and 10 hats (Viking helmet, propeller cap, crown…).
@@ -45,7 +46,7 @@ npm start
 
 **3. Share the link.** After about 30 seconds the computer shows a link like `https://some-funny-words.trycloudflare.com` **and a QR code**.
 - Scan the QR code with your phone camera, or send the link to friends (WhatsApp, Discord…).
-- **Join from your phone first** — the first person to join is the **host** 👑 (picks the rope mode, adds bots, presses Start).
+- **Join from your phone first** — the first person to join is the **host** 👑 (picks 🎲 Random or the Sky Course, the difficulty and length, the rope mode, adds bots, presses Start).
 - There's also a 📨 **Invite** button in the lobby with the same link and QR code.
 
 That's it! Keep the computer **on and awake** while you play (plugged in, sleep turned off).
@@ -79,10 +80,13 @@ That's it! Keep the computer **on and awake** while you play (plugged in, sleep 
 
 **How many players?** Up to 6 (people + robot buddies).
 
+**Is every random world possible?** Every room follows the jump rules (no gap too far, no step too high) and gets checked by tests. But the hardest worlds with combos are still being play-tested — if a world feels unfair, the server window shows its number (like `🎲 New world #516788`); please open an issue with it.
+
 ## 🛠️ How it works (for the curious)
 
 - Your computer is the **boss**: it runs the game's physics ([Rapier](https://rapier.rs)) 60 times a second. Phones only send their button presses and draw what the boss says (with [Three.js](https://threejs.org)), so everyone always sees the same thing.
 - The rope is a chain of little links that bump into bricks — that's what lets it drape, wrap and get pushed.
+- Random worlds come from a **seed number**: the boss picks one and sends it, and every phone builds the exact same world from it. Rooms are in [`shared/rooms/`](shared/rooms/), the world maker spends a "danger budget" so Easy stays easy.
 - [Cloudflare Quick Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/do-more-with-tunnels/trycloudflare/) gives your computer a public link, so friends behind other routers can reach it.
 - Built with TypeScript, Node.js, [ws](https://github.com/websockets/ws), Three.js, Rapier and [Vite](https://vite.dev).
 
@@ -93,7 +97,7 @@ shared/   used by both (physics, rope, course layout, messages)
 docs/     plans, design, decisions and progress notes
 ```
 
-Want to change the course? It's all in [`shared/sky-course.ts`](shared/sky-course.ts) — every brick is one line. More details in [`docs/`](docs/): [game design](docs/GAME_DESIGN.md), [tech plan](docs/TECH_PLAN.md), [decisions](docs/DECISIONS.md).
+Want to change the course? The Sky Course is in [`shared/sky-course.ts`](shared/sky-course.ts) — every brick is one line. Random-world rooms are in [`shared/rooms/`](shared/rooms/). More details in [`docs/`](docs/): [game design](docs/GAME_DESIGN.md), [tech plan](docs/TECH_PLAN.md), [decisions](docs/DECISIONS.md).
 
 ## 📜 License
 

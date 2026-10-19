@@ -4,6 +4,8 @@
 import { WebSocket } from 'ws';
 import { ACTION_CODE, isAction } from '../shared/actions';
 import type { CourseDef } from '../shared/course';
+import { COURSES, courseFromSpec, sameCourse, type CourseChoice, type CourseSpec } from '../shared/courses';
+import { DIFFICULTIES, LENGTHS, newSeed, planWorld } from '../shared/rooms/world-maker';
 import { cleanName, HATS, isHat, isShirtColor, SHIRT_COLORS, type Hat } from '../shared/looks';
 import {
   FLAG_GROUNDED,
@@ -56,7 +58,50 @@ interface Game {
 const round = (n: number) => Math.round(n * 100) / 100;
 
 export class Room {
-  constructor(private course: CourseDef) {}
+  /** The course being played now (for random worlds: this round's world). */
+  private course: CourseDef;
+  private spec: CourseSpec;
+
+  /** What the host picked in the lobby. */
+  private choice: CourseChoice;
+  /** A fixed seed from the command line (`--seed=`): always that one random world. 0 = a new world each round. */
+  private fixedSeed: number;
+  /** The courses the host can pick in the lobby. */
+  private choices: string[];
+
+  /** `start` = the course from the command line (the lobby can change it). */
+  constructor(start: CourseSpec & Partial<CourseChoice>) {
+    this.choice = { id: start.id, difficulty: start.difficulty ?? 'medium', length: start.length ?? 'normal' };
+    this.fixedSeed = 'seed' in start ? start.seed : 0;
+    // Sky + random always; a test course (lab, gallery) only if the server was started with it.
+    this.choices = ['sky', 'random', ...(start.id !== 'sky' && start.id !== 'random' ? [start.id] : [])];
+    this.spec = this.nextSpec();
+    this.course = courseFromSpec(this.spec);
+  }
+
+  /** Which course is on (the page asks for this when it loads). */
+  get courseSpec() {
+    return this.spec;
+  }
+
+  private nextSpec(): CourseSpec {
+    const { id, difficulty, length } = this.choice;
+    if (id === 'random') return { id, seed: this.fixedSeed || newSeed(), difficulty, length };
+    return { id };
+  }
+
+  /** 🎲 Rolls a new random world (does nothing for hand-made courses or a fixed seed). */
+  private rollWorld() {
+    const spec = this.nextSpec();
+    if (sameCourse(spec, this.spec)) return;
+    this.spec = spec;
+    this.course = courseFromSpec(spec);
+    this.bestTime = null; // a best time only counts on the same world
+    if ('seed' in spec) {
+      const plan = planWorld(spec);
+      console.log(`🎲 New world #${spec.seed} (${spec.difficulty}, ${spec.length}): ${plan.choices.map((c) => c.room.name + (c.combos?.length ? ` + ${c.combos.join(' + ')}` : '')).join(' → ')}`);
+    }
+  }
 
   private people = new Map<string, Person>(); // by id
   private phase: Phase = 'lobby';
@@ -142,7 +187,7 @@ export class Room {
     this.sendLobby();
     if (this.game) {
       const { players, teams, ropes } = this.game;
-      this.send(socket, { type: 'start', players, teams, ropes });
+      this.send(socket, { type: 'start', players, teams, ropes, course: this.spec });
     }
     return person;
   }
@@ -173,14 +218,27 @@ export class Room {
         if (typeof message.bots === 'number') {
           this.botCount = Math.max(0, Math.min(MAX_PLAYERS - this.people.size, Math.floor(message.bots)));
         }
+        // 🗺️ Course picker (the world itself is rolled when the host presses Start).
+        if (message.course && this.choices.includes(message.course) && (message.course === 'random' || COURSES[message.course])) {
+          this.choice.id = message.course;
+        }
+        if (message.difficulty && DIFFICULTIES.includes(message.difficulty)) this.choice.difficulty = message.difficulty;
+        if (message.length && LENGTHS.includes(message.length)) this.choice.length = message.length;
         this.sendLobby();
         break;
       case 'start':
-        if (this.isHost(person) && this.phase === 'lobby') this.startGame();
+        // From the lobby: a new random world every time.
+        if (this.isHost(person) && this.phase === 'lobby') {
+          this.rollWorld();
+          this.startGame();
+        }
         break;
       case 'restart':
-        // Play again: a fresh race with the same teams and settings.
-        if (this.isHost(person) && this.game) this.startGame();
+        // Retry in the middle of a race = the same world again. Play again after someone finished = a new world.
+        if (this.isHost(person) && this.game) {
+          if (this.game.world.teamProgress.some((team) => team.finishedAt !== null)) this.rollWorld();
+          this.startGame();
+        }
         break;
       case 'backToLobby':
         if (this.isHost(person) && this.phase === 'playing') this.endGame();
@@ -224,6 +282,8 @@ export class Room {
       mode: this.mode,
       bots: this.botCount,
       invite: this.invite,
+      course: { ...this.choice },
+      courses: this.choices,
     };
   }
 
@@ -299,7 +359,7 @@ export class Room {
     this.game = { world, players, teams, ropes };
     this.phase = 'playing';
     console.log(`🏁 Game started: ${teams.map((t) => t.length).join(' + ')} players (${this.mode})`);
-    this.broadcast({ type: 'start', players, teams, ropes });
+    this.broadcast({ type: 'start', players, teams, ropes, course: this.spec });
     this.sendLobby();
     this.startLoop();
   }

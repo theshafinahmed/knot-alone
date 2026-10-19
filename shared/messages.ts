@@ -1,6 +1,8 @@
 // The shapes of messages sent between the server (the boss) and the game pages.
 
 import type { ActionKind } from './actions';
+import type { CourseChoice, CourseSpec } from './courses';
+import type { Difficulty, WorldLength } from './rooms/world-maker';
 import type { Hat } from './looks';
 import type { RopeMode } from './teams';
 
@@ -57,8 +59,8 @@ export type ClientMessage =
   | { type: 'input'; x: number; z: number; jumps: number; pull?: boolean }
   /** Do a fun action: wave, punch, dance or cheer. */
   | { type: 'action'; action: ActionKind }
-  /** Host only: change the rope mode or the number of bots. */
-  | { type: 'setup'; mode?: RopeMode; bots?: number }
+  /** Host only: change the rope mode, the number of bots, or the course (🎲 random + difficulty + length). */
+  | { type: 'setup'; mode?: RopeMode; bots?: number; course?: string; difficulty?: Difficulty; length?: WorldLength }
   /** Host only. */
   | { type: 'start' }
   | { type: 'restart' }
@@ -69,9 +71,19 @@ export type ServerMessage =
   | { type: 'welcome'; id: string }
   | { type: 'full' }
   /** The lobby. `invite` is the link friends can open (`anywhere` = works outside this Wi-Fi too). */
-  | { type: 'lobby'; phase: Phase; players: LobbyPlayer[]; mode: RopeMode; bots: number; invite: Invite | null }
-  /** A game started: everyone in it (bots too), the teams, and the ropes [a, b, length]. */
-  | { type: 'start'; players: LobbyPlayer[]; teams: string[][]; ropes: [string, string, number][] }
+  | {
+      type: 'lobby';
+      phase: Phase;
+      players: LobbyPlayer[];
+      mode: RopeMode;
+      bots: number;
+      invite: Invite | null;
+      /** The course the host picked (and the choices there are). */
+      course: CourseChoice;
+      courses: string[];
+    }
+  /** A game started: everyone in it (bots too), the teams, the ropes [a, b, length], and which course (or random world). */
+  | { type: 'start'; players: LobbyPlayer[]; teams: string[][]; ropes: [string, string, number][]; course: CourseSpec }
   /**
    * Where everything is right now. `t` is the server's clock in milliseconds.
    * `rt` = race time in seconds (negative during the countdown). `tp` = each team's

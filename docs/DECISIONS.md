@@ -86,3 +86,8 @@
 | 2026-10-19 | Rooms are joined by **8×8 pads with a checkpoint** | Same size as the Sky Course pads, so a chain of 6 always spawns safely, and a fall only costs you one room. |
 | 2026-10-19 | The world is built from a **seeded dice** (mulberry32), never Math.random | The server sends one number, every phone builds the exact same world. |
 | 2026-10-19 | **No trampolines in random worlds** (room removed; the physics stays for the Obstacle Lab) | Shafin played it with friends: on a rope, the whole team can't bounce at once, so it feels nearly impossible. |
+| 2026-10-19 | **New world on Start and on Play again after a finish; Retry mid-race keeps the same world** | Retry means "let's try THIS one again"; a finished race should give something new. |
+| 2026-10-19 | Difficulty budget per room: **easy 2.3, medium 3.4, hard 4.6**; lengths **4 / 8 / 12 rooms** | Easy = gentle rooms with rare combos; hard = scary rooms and many combos. 8 rooms ≈ the Sky Course's length. Tune after playing. |
+| 2026-10-19 | Until the lobby picker (10h), random worlds are chosen with `npm start -- --course=random` (+ `--difficulty`, `--length`) | Lets Shafin play random worlds now, before the lobby buttons exist. |
+| 2026-10-19 | **Lobby picker built before the robot tester** (10h before 10g); plain `npm start` defaults to 🎲 Random (medium, normal) | Shafin didn't want special commands. The host picks the course with buttons. |
+| 2026-10-19 | Phone lobby sheet **scrolls inside with a sticky Start button** | The picker made the sheet taller than small phones; Start must always be reachable. |

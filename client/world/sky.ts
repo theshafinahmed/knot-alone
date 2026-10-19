@@ -21,6 +21,7 @@ export function createSkyBackground() {
 
 const cloudGeometry = new THREE.IcosahedronGeometry(1, 2);
 const cloudMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, flatShading: false });
+cloudGeometry.userData.shared = cloudMaterial.userData.shared = true; // (kept when a course is swapped)
 
 /** A glowing sun far away in the sky (a soft round picture that always faces you). */
 export function createSun() {

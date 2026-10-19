@@ -1,7 +1,9 @@
 // The join screen and the lobby 🏠 (plain web page parts on top of the 3D world).
 
 import { HAT_LABEL, HATS, NAME_MAX, SHIRT_COLORS, cleanName, type Hat } from '../shared/looks';
+import type { CourseChoice } from '../shared/courses';
 import type { LobbyPlayer } from '../shared/messages';
+import { DIFFICULTIES, LENGTHS, type Difficulty, type WorldLength } from '../shared/rooms/world-maker';
 import { MAX_PLAYERS, ROPE_MODES, modeFits, type RopeMode } from '../shared/teams';
 
 export interface Look {
@@ -18,6 +20,28 @@ const MODE_NAME: Record<RopeMode, string> = {
   chain: 'One chain',
   teams3: 'Teams of 3',
   teams2: 'Teams of 2',
+};
+
+/** Names for the course picker. */
+const COURSE_NAME: Record<string, string> = { sky: 'Sky Course', random: '🎲 Random', lab: 'Lab', gallery: 'Gallery' };
+const DIFFICULTY_NAME: Record<Difficulty, string> = { easy: 'Easy', medium: 'Medium', hard: 'Hard' };
+const LENGTH_NAME: Record<WorldLength, string> = { short: 'Short', normal: 'Normal', long: 'Long' };
+
+/** Fills a row of buttons (a "segmented" picker) once; `update` marks the picked one. */
+function segButtons<T extends string>(row: HTMLElement, items: readonly T[], names: Record<T, string>, pick: (item: T) => void) {
+  row.replaceChildren(
+    ...items.map((item) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = names[item] ?? item;
+      button.dataset.value = item;
+      button.addEventListener('click', () => pick(item));
+      return button;
+    }),
+  );
+}
+const markPicked = (row: HTMLElement, value: string) => {
+  for (const button of row.querySelectorAll<HTMLButtonElement>('button')) button.classList.toggle('picked', button.dataset.value === value);
 };
 
 const ICON_CROWN =
@@ -167,6 +191,9 @@ export class JoinScreen {
 export interface LobbyActions {
   setMode: (mode: RopeMode) => void;
   setBots: (bots: number) => void;
+  setCourse: (course: string) => void;
+  setDifficulty: (difficulty: Difficulty) => void;
+  setLength: (length: WorldLength) => void;
   start: () => void;
   editLook: () => void;
 }
@@ -176,8 +203,11 @@ export class LobbyPanel {
   private mode: RopeMode = 'chain';
   private bots = 0;
   private people = 0;
+  private courseList = '';
 
   constructor(private actions: LobbyActions) {
+    segButtons($('#difficulties'), DIFFICULTIES, DIFFICULTY_NAME, actions.setDifficulty);
+    segButtons($('#lengths'), LENGTHS, LENGTH_NAME, actions.setLength);
     const modes = $('#modes');
     for (const mode of ROPE_MODES) {
       const button = document.createElement('button');
@@ -201,7 +231,7 @@ export class LobbyPanel {
     this.root.classList.add('hidden');
   }
 
-  update(players: LobbyPlayer[], myId: string | null, mode: RopeMode, bots: number) {
+  update(players: LobbyPlayer[], myId: string | null, mode: RopeMode, bots: number, course: CourseChoice, courses: string[]) {
     this.mode = mode;
     this.bots = bots;
     this.people = players.length;
@@ -255,6 +285,23 @@ export class LobbyPanel {
       button.classList.toggle('picked', buttonMode === mode);
       button.disabled = !modeFits(buttonMode, total);
     }
+    // 🗺️ Course picker. Random worlds also get difficulty + length.
+    if (courses.join() !== this.courseList) {
+      this.courseList = courses.join();
+      segButtons($('#courses'), courses, COURSE_NAME, this.actions.setCourse);
+    }
+    markPicked($('#courses'), course.id);
+    markPicked($('#difficulties'), course.difficulty);
+    markPicked($('#lengths'), course.length);
+    const random = course.id === 'random';
+    $('#random-settings').classList.toggle('hidden', !random);
+    // Everyone else sees what the host picked.
+    const info = $('#course-info');
+    info.textContent = random
+      ? `Course: 🎲 Random world · ${DIFFICULTY_NAME[course.difficulty]} · ${LENGTH_NAME[course.length]}`
+      : `Course: ${COURSE_NAME[course.id] ?? course.id}`;
+    info.classList.toggle('hidden', amHost);
+
     $('#bots-count').textContent = String(bots);
     $<HTMLButtonElement>('#bots-minus').disabled = bots <= 0;
     $<HTMLButtonElement>('#bots-plus').disabled = total >= MAX_PLAYERS;

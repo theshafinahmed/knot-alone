@@ -10,7 +10,8 @@ import { Connection, playerToken } from './connection';
 import { GameView } from './game-view';
 import { JoinScreen, LobbyPanel, type Look } from './lobby';
 import { InviteCard } from './invite';
-import { COURSES, COURSE_PATH, DEFAULT_COURSE } from '../shared/courses';
+import { COURSE_PATH, DEFAULT_COURSE, courseFromSpec, sameCourse, type CourseSpec } from '../shared/courses';
+import type { CourseDef } from '../shared/course';
 import { RaceHud } from './race-hud';
 import { sounds } from './sounds';
 import { Confetti } from './confetti';
@@ -52,32 +53,14 @@ scene.add(sunDisc);
 scene.add(createCloudSea());
 
 // Ask the server which course is on (so the page draws the same one). Sky Course if it can't say.
-const courseId = await fetch(COURSE_PATH)
-  .then((res) => res.json() as Promise<{ id: string }>)
-  .then((data) => data.id)
-  .catch(() => DEFAULT_COURSE);
-const course = COURSES[courseId] ?? COURSES[DEFAULT_COURSE];
-const courseView = new CourseView(course);
-scene.add(courseView.group);
-
-// Clouds all along the course — but never on or right next to it (a cloud floating in front of the
-// camera hides everything). "Near the course" = within 12 m of any brick, at playing height.
-const courseBoxes = [...course.bricks, ...course.movers.map((m) => m.brick)].map((b) => ({
-  minX: b.x - b.width / 2 - 6,
-  maxX: b.x + b.width / 2 + 6,
-  minZ: b.z - b.depth / 2 - 6,
-  maxZ: b.z + b.depth / 2 + 6,
-  top: b.y,
-}));
-const nearCourse = (x: number, y: number, z: number, size: number) =>
-  courseBoxes.some(
-    (box) =>
-      x > box.minX - size * 2 &&
-      x < box.maxX + size * 2 &&
-      z > box.minZ - size * 2 &&
-      z < box.maxZ + size * 2 &&
-      y > box.top - 12 - size,
-  );
+// For a random world the server only sends the seed and settings; we build the same world from them.
+let courseSpec: CourseSpec = await fetch(COURSE_PATH)
+  .then((res) => res.json() as Promise<CourseSpec>)
+  .catch(() => ({ id: DEFAULT_COURSE }));
+let course: CourseDef;
+let courseView: CourseView;
+let clouds: THREE.Group[] = [];
+let floors: GameWorld;
 // 🎉 Confetti pieces live in the scene for the whole game.
 const confetti = new Confetti();
 scene.add(confetti.mesh);
@@ -92,15 +75,6 @@ muteButton.addEventListener('click', () => {
 });
 showMute();
 
-const clouds = [
-  { x: 0, z: -20 },
-  { x: 14, z: -110 },
-  { x: 14, z: -200 },
-].map((center, i) => {
-  const field = createCloudField(30, i + 1, center, nearCourse);
-  scene.add(field);
-  return field;
-});
 
 // ---------- Camera (the eyes) ----------
 
@@ -117,11 +91,75 @@ resize();
 
 // The physics engine is only used here to find floors (for shadows and ropes). The server runs the real game.
 await initPhysics();
-// (Only the still bricks — the moving parts aren't needed for that.)
-const floors = new GameWorld({ ...course, movers: [] });
-// The physics engine only builds its "where is everything" index on its first step. Without this,
-// every question ("is there a floor under me?", "is a wall in the way?") would answer "nothing".
-floors.world.step();
+
+/**
+ * Builds everything that belongs to one course: the bricks, the clouds around it, and the floors-only
+ * physics copy. Called at the start, and again when a round starts on a different (random) world.
+ */
+function setCourse(spec: CourseSpec) {
+  if (courseView) {
+    scene.remove(courseView.group);
+    courseView.dispose();
+  }
+  for (const field of clouds) {
+    scene.remove(field);
+    disposeObject(field);
+  }
+  floors?.dispose();
+
+  courseSpec = spec;
+  course = courseFromSpec(spec);
+  courseView = new CourseView(course);
+  scene.add(courseView.group);
+
+  // Clouds all along the course — but never on or right next to it (a cloud floating in front of the
+  // camera hides everything). "Near the course" = within 12 m of any brick, at playing height.
+  const courseBoxes = [...course.bricks, ...course.movers.map((m) => m.brick)].map((b) => ({
+    minX: b.x - b.width / 2 - 6,
+    maxX: b.x + b.width / 2 + 6,
+    minZ: b.z - b.depth / 2 - 6,
+    maxZ: b.z + b.depth / 2 + 6,
+    top: b.y,
+  }));
+  const nearCourse = (x: number, y: number, z: number, size: number) =>
+    courseBoxes.some(
+      (box) =>
+        x > box.minX - size * 2 &&
+        x < box.maxX + size * 2 &&
+        z > box.minZ - size * 2 &&
+        z < box.maxZ + size * 2 &&
+        y > box.top - 12 - size,
+    );
+  // One field of clouds about every 90 m along the course.
+  const centers: { x: number; z: number }[] = [];
+  for (const spot of [...course.checkpoints, ...(course.finish ? [course.finish] : [])]) {
+    const last = centers.at(-1);
+    if (!last || Math.hypot(spot.x - last.x, spot.z - 20 - last.z) > 90) centers.push({ x: spot.x, z: spot.z - 20 });
+  }
+  clouds = centers.map((center, i) => {
+    const field = createCloudField(30, i + 1, center, nearCourse);
+    scene.add(field);
+    return field;
+  });
+
+  // (Only the still bricks — the moving parts aren't needed for that.)
+  floors = new GameWorld({ ...course, movers: [] });
+  // The physics engine only builds its "where is everything" index on its first step. Without this,
+  // every question ("is there a floor under me?", "is a wall in the way?") would answer "nothing".
+  floors.world.step();
+}
+
+/** Frees the shapes and paint of something we throw away (the shared ones stay). */
+function disposeObject(object: THREE.Object3D) {
+  object.traverse((child) => {
+    const mesh = child as THREE.Mesh;
+    if (mesh.geometry && !mesh.geometry.userData.shared) mesh.geometry.dispose();
+    const materials = mesh.material ? (Array.isArray(mesh.material) ? mesh.material : [mesh.material]) : [];
+    for (const material of materials) if (!material.userData.shared) material.dispose();
+  });
+}
+
+setCourse(courseSpec);
 
 // ---------- State ----------
 
@@ -175,7 +213,7 @@ function onMessage(message: ServerMessage) {
     case 'lobby':
       lobbyPlayers = message.players;
       phase = message.phase;
-      lobby.update(message.players, myId, message.mode, message.bots);
+      lobby.update(message.players, myId, message.mode, message.bots, message.course, message.courses);
       invite.set(message.invite);
       if (phase === 'lobby' && game) endGame();
       refreshScreens();
@@ -203,6 +241,9 @@ $('#open-invite').addEventListener('click', () => invite.show());
 const lobby = new LobbyPanel({
   setMode: (mode) => connection.send({ type: 'setup', mode }),
   setBots: (bots) => connection.send({ type: 'setup', bots }),
+  setCourse: (course) => connection.send({ type: 'setup', course }),
+  setDifficulty: (difficulty) => connection.send({ type: 'setup', difficulty }),
+  setLength: (length) => connection.send({ type: 'setup', length }),
   start: () => connection.send({ type: 'start' }),
   editLook: () => joinScreen.show('Save'),
 });
@@ -309,6 +350,8 @@ const controls = new Controls(canvas, {
 
 function startGame(message: Extract<ServerMessage, { type: 'start' }>) {
   game?.dispose();
+  // 🎲 A new round on a different world: build it first.
+  if (message.course && !sameCourse(message.course, courseSpec)) setCourse(message.course);
   for (const item of lineup) item.view.dispose();
   lineup = [];
   game = new GameView(scene, floors, message);
@@ -405,7 +448,12 @@ joinScreen.show();
   scene,
   camera,
   renderer,
-  floors,
+  get floors() {
+    return floors;
+  },
+  get course() {
+    return course;
+  },
   connection,
   get game() {
     return game;

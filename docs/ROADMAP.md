@@ -122,7 +122,7 @@ Shafin picked: new obstacles, longer + branching paths, teams racing on one cour
 
 **Part B — random worlds**
 - [x] 10e. (built, waiting for Shafin to try the Room Gallery) Cut the courses into "rooms" (old Sky Course parts + the new obstacles, no trampoline), each with a door in, a door out, a danger cost, and stretch settings; test each room alone
-- [ ] 10f. World maker: seed → pick rooms within the difficulty budget → snap them together, checkpoints between rooms, brick limit
+- [x] 10f. (built, waiting for Shafin to play) World maker: seed → pick rooms within the difficulty budget → snap them together, checkpoints between rooms, brick limit
 - [ ] 10g. Robot tester: a smarter test robot plays each new world on the server; fail → roll again
-- [ ] 10h. Lobby: course picker (Sky Course / Hard course / 🎲 Random) + Easy / Medium / Hard
+- [x] 10h. (built before 10g, Shafin's pick; waiting for Shafin to try) Lobby: course picker (Sky Course / Hard course / 🎲 Random) + Easy / Medium / Hard
 - [ ] 10i. Speed check on a phone-sized screen; Shafin + friends play 5 random worlds
