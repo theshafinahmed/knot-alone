@@ -3,7 +3,7 @@
 // and in Step 4 the server (the boss) will run this exact same code.
 
 import RAPIER from '@dimforge/rapier3d-compat';
-import { BRICK_HEIGHT, moverPose, moverVelocityAt, type BrickDef, type CourseDef, type MoverDef } from '../course';
+import { BRICK_HEIGHT, moverPose, moverVelocityAt, swingPose, windAt, type BrickDef, type CourseDef, type MoverDef } from '../course';
 import { ACTION_TIME, KICK, PUNCH, type ActionKind } from '../actions';
 
 export { RAPIER };
@@ -32,6 +32,9 @@ export const PLAYER = {
   stunSpeed: 15, // land faster than this and you lie flat for a moment
   stunTime: 0.9,
   limpSlide: 0.9, // how much speed a limp (not trying) player keeps per tick on the ground
+  iceAccel: 6, // 🧊 on ice your feet barely grip: slow to speed up, turn or stop...
+  iceBrace: 5, // ...and standing still doesn't plant your feet (you can't catch a friend well)
+  iceSlide: 0.995, // a limp player on ice keeps sliding
   climbReel: 0.6, // each jump-tap while hanging pulls you this much further up the rope (meters)
   climbHop: 3, // ...with a little upward hop so it feels like climbing
   climbCooldown: 0.28,
@@ -61,6 +64,31 @@ export const ROPE = {
   iterations: 8,
   /** How much a link keeps its swing each tick (less = calms down faster). */
   damping: 0.96,
+};
+
+/** 🔨 What a swinging hammer does to you. */
+export const HAMMER = {
+  /** The head must move at least this fast (m/s) to knock you (it barely moves at the ends of its swing). */
+  minSpeed: 2.5,
+  shove: 13,
+  hop: 5,
+  stumble: 0.8,
+  /** After a hit, a hammer can't hit you again for this long (seconds). */
+  cooldown: 0.6,
+  /** How thick the arm the head hangs from is (meters). */
+  arm: 0.25,
+};
+
+/** 💨 How much the wind pushes. */
+export const WIND = {
+  /** Walking: this share of the wind's speed is added to yours. */
+  ground: 0.5,
+  /** Standing still (feet planted): you lean into it, much less push. */
+  brace: 0.05,
+  /** In the air you get blown sideways this hard (× wind speed, per second). */
+  air: 1.0,
+  /** Rope links get blown this hard (× wind speed, per second). */
+  rope: 6,
 };
 
 /** From the feet to the middle of the body. */
@@ -104,6 +132,7 @@ export interface PlayerState {
 /** Something that happened in the game, for sounds and confetti on the phones. */
 export type WorldEvent =
   | { kind: 'hit'; x: number; y: number; z: number }
+  | { kind: 'boing'; x: number; y: number; z: number }
   | { kind: 'checkpoint'; team: number; index: number }
   | { kind: 'finish'; team: number }
   | { kind: 'fall'; team: number };
@@ -161,8 +190,10 @@ interface PlayerBody {
   team: number;
   /** Place in the team's line (0 = front), used to line up at checkpoints. */
   slot: number;
-  /** How fast the floor under you moves (spinning disc, sliding block), so it carries you. */
-  floorVelocity: { x: number; z: number };
+  /** How fast the floor under you moves (spinning disc, sliding block, elevator, conveyor), so it carries you. */
+  floorVelocity: { x: number; y: number; z: number };
+  /** Standing on ice 🧊. */
+  onIce: boolean;
   /** Scrambling over an edge: which way, and for how much longer. */
   mantle: { x: number; z: number; time: number };
   /** The fun action going on right now, and for how long (seconds). */
@@ -171,6 +202,10 @@ interface PlayerBody {
   kickCooldown: number;
   /** Seconds left of stumbling after being punched (no control over your feet). */
   stumble: number;
+  /** 🦘 The floor under you is a trampoline that throws you up this fast (0 = not a trampoline). */
+  floorBounce: number;
+  /** 🔨 Seconds until a hammer can hit you again. */
+  hammerCooldown: number;
 }
 
 export class GameWorld {
@@ -182,6 +217,8 @@ export class GameWorld {
   /** Moving parts, and which collider belongs to which one. */
   private movers: { def: MoverDef; body: RAPIER.RigidBody }[] = [];
   private moverByCollider = new Map<number, MoverDef>();
+  /** Which brick each solid shape is (to know if it's ice or a conveyor). */
+  private brickByCollider = new Map<number, BrickDef>();
   /** Each team's progress: last checkpoint reached, and when they finished (race seconds). */
   private teams = new Map<number, TeamProgress>();
   private teamCount = 1;
@@ -195,7 +232,10 @@ export class GameWorld {
     this.world.timestep = TICK;
 
     for (const brick of course.bricks) {
-      this.world.createCollider(brickCollider(brick).setTranslation(brick.x, brick.y - (brick.height ?? BRICK_HEIGHT) / 2, brick.z));
+      const collider = this.world.createCollider(
+        brickCollider(brick).setTranslation(brick.x, brick.y - (brick.height ?? BRICK_HEIGHT) / 2, brick.z),
+      );
+      this.brickByCollider.set(collider.handle, brick);
     }
 
     // Moving parts are "kinematic": they move along their path no matter what, and push players.
@@ -204,12 +244,27 @@ export class GameWorld {
       const body = this.world.createRigidBody(
         RAPIER.RigidBodyDesc.kinematicPositionBased().setTranslation(pose.x, pose.y, pose.z),
       );
+      // A hammer: the head hangs `length` below the point it swings from, on a thin arm.
+      const hammer = def.motion.kind === 'swing' ? def.motion.length : 0;
+      // (A hammer head is long along the way it swings: `width` lies along its swing axis.)
+      const shape =
+        def.motion.kind === 'swing' && def.motion.axis === 'z'
+          ? { ...def.brick, width: def.brick.depth, depth: def.brick.width }
+          : def.brick;
       const collider = this.world.createCollider(
-        brickCollider(def.brick).setTranslation(0, -(def.brick.height ?? BRICK_HEIGHT) / 2, 0),
+        brickCollider(shape).setTranslation(0, hammer ? -hammer : -(def.brick.height ?? BRICK_HEIGHT) / 2, 0),
         body,
       );
+      if (hammer) {
+        const armLength = hammer - (def.brick.height ?? BRICK_HEIGHT) / 2;
+        this.world.createCollider(
+          RAPIER.ColliderDesc.cuboid(HAMMER.arm / 2, armLength / 2, HAMMER.arm / 2).setTranslation(0, -armLength / 2, 0),
+          body,
+        );
+      }
       this.movers.push({ def, body });
       this.moverByCollider.set(collider.handle, def);
+      this.brickByCollider.set(collider.handle, def.brick);
     }
   }
 
@@ -268,12 +323,15 @@ export class GameWorld {
       pulling: false,
       team,
       slot,
-      floorVelocity: { x: 0, z: 0 },
+      floorVelocity: { x: 0, y: 0, z: 0 },
+      onIce: false,
       mantle: { x: 0, z: 0, time: 0 },
       action: null,
       punchCooldown: 0,
       kickCooldown: 0,
       stumble: 0,
+      floorBounce: 0,
+      hammerCooldown: 0,
     });
   }
 
@@ -309,6 +367,7 @@ export class GameWorld {
       this.applyInput(player, counting ? NO_INPUT : (inputs.get(id) ?? NO_INPUT));
     }
     this.updateActions();
+    this.updateHammers();
     this.updateRopes();
 
     // Moving parts go where their path says they should be at the end of this tick.
@@ -316,7 +375,11 @@ export class GameWorld {
     for (const { def, body } of this.movers) {
       const pose = moverPose(def, next);
       body.setNextKinematicTranslation({ x: pose.x, y: pose.y, z: pose.z });
-      body.setNextKinematicRotation({ x: 0, y: Math.sin(pose.angle / 2), z: 0, w: Math.cos(pose.angle / 2) });
+      body.setNextKinematicRotation(
+        def.motion.kind === 'swing'
+          ? swingPose(def, next).rotation
+          : { x: 0, y: Math.sin(pose.angle / 2), z: 0, w: Math.cos(pose.angle / 2) },
+      );
     }
     this.world.step();
     this.time = next;
@@ -390,6 +453,42 @@ export class GameWorld {
       if (action.kind === 'punch' && before < PUNCH.hitAt && action.time >= PUNCH.hitAt) this.landPunch(id, player, PUNCH);
       if (action.kind === 'kick' && before < KICK.hitAt && action.time >= KICK.hitAt) this.landPunch(id, player, KICK);
       if (action.time >= ACTION_TIME[action.kind]) player.action = null;
+    }
+  }
+
+  /** 🔨 A swinging hammer head that hits you knocks you the way it's swinging (and a bit up). */
+  private updateHammers() {
+    for (const player of this.players.values()) player.hammerCooldown -= TICK;
+    for (const { def } of this.movers) {
+      if (def.motion.kind !== 'swing') continue;
+      const { head, headVelocity } = swingPose(def, this.time);
+      const speed = Math.hypot(headVelocity.x, headVelocity.z);
+      if (speed < HAMMER.minSpeed) continue;
+      const height = def.brick.height ?? BRICK_HEIGHT;
+      const along = def.motion.axis;
+      for (const player of this.players.values()) {
+        if (player.hammerCooldown > 0) continue;
+        const p = player.body.translation();
+        // Is the player's body inside the head (made a little bigger by the player's own size)?
+        const dAlong = along === 'x' ? p.x - head.x : p.z - head.z;
+        const dAcross = along === 'x' ? p.z - head.z : p.x - head.x;
+        if (Math.abs(dAlong) > def.brick.width / 2 + PLAYER.radius + 0.15) continue;
+        if (Math.abs(dAcross) > def.brick.depth / 2 + PLAYER.radius) continue;
+        if (Math.abs(p.y - head.y) > height / 2 + FEET_TO_CENTER) continue;
+        const v = player.body.linvel();
+        player.body.setLinvel(
+          {
+            x: v.x * 0.3 + (headVelocity.x / speed) * HAMMER.shove,
+            y: Math.max(v.y, HAMMER.hop),
+            z: v.z * 0.3 + (headVelocity.z / speed) * HAMMER.shove,
+          },
+          true,
+        );
+        player.stumble = HAMMER.stumble;
+        player.hammerCooldown = HAMMER.cooldown;
+        player.action = null;
+        this.events.push({ kind: 'hit', x: p.x, y: p.y, z: p.z });
+      }
     }
   }
 
@@ -518,10 +617,14 @@ export class GameWorld {
       for (let i = 1; i < n; i++) {
         const p = points[i];
         const old = previous[i];
+        // 💨 Wind blows the rope like a flag.
+        const wind = this.course.winds ? windAt(this.course, this.time, p.x, p.y, p.z) : null;
+        const blowX = wind ? wind.x * WIND.rope * TICK * TICK : 0;
+        const blowZ = wind ? wind.z * WIND.rope * TICK * TICK : 0;
         const moved = {
-          x: p.x + (p.x - old.x) * ROPE.damping,
+          x: p.x + (p.x - old.x) * ROPE.damping + blowX,
           y: p.y + (p.y - old.y) * ROPE.damping - gravityStep,
-          z: p.z + (p.z - old.z) * ROPE.damping,
+          z: p.z + (p.z - old.z) * ROPE.damping + blowZ,
         };
         previous[i] = p;
         points[i] = moved;
@@ -887,7 +990,21 @@ export class GameWorld {
     const velocity = body.linvel();
 
     const wasGrounded = player.grounded;
-    player.grounded = velocity.y < 1 && this.touchingFloor(player);
+    // (On a rising elevator you go up with it and still count as standing.)
+    const touching = this.touchingFloor(player);
+    player.grounded = velocity.y - player.floorVelocity.y < 1 && touching;
+
+    // 🦘 Landed on a trampoline: thrown up into the air (holding jump throws you a bit higher).
+    if (player.grounded && player.floorBounce > 0) {
+      velocity.y = player.floorBounce + (input.jump || player.jumpBuffer > 0 ? 2 : 0);
+      body.setLinvel(velocity, true);
+      player.grounded = false;
+      player.fallSpeed = 0;
+      player.coyote = 0;
+      player.jumpBuffer = 0;
+      const p = body.translation();
+      this.events.push({ kind: 'boing', x: p.x, y: p.y - FEET_TO_CENTER, z: p.z });
+    }
 
     // Hard landing → lie flat for a moment.
     if (!player.grounded) {
@@ -908,15 +1025,26 @@ export class GameWorld {
     // Dancing stops when you start walking (waving and cheering don't).
     if (player.action?.kind === 'dance' && Math.hypot(input.x, input.z) > 0.3) player.action = null;
 
-    const floor = player.floorVelocity;
+    // 💨 Standing in the wind is like standing on a slow conveyor belt (in the air it blows you, see below).
+    const position = body.translation();
+    const wind = this.course.winds ? windAt(this.course, this.time, position.x, position.y - FEET_TO_CENTER, position.z) : null;
+    const floor =
+      wind && player.grounded
+        ? {
+            x: player.floorVelocity.x + wind.x * WIND.ground,
+            y: player.floorVelocity.y,
+            z: player.floorVelocity.z + wind.z * WIND.ground,
+          }
+        : player.floorVelocity;
     if (input.limp) {
       // A limp player just slides to a stop on the ground (and can be dragged around).
       if (player.grounded) {
+        const slide = player.onIce ? PLAYER.iceSlide : PLAYER.limpSlide;
         body.setLinvel(
           {
-            x: floor.x + (velocity.x - floor.x) * PLAYER.limpSlide,
-            y: velocity.y,
-            z: floor.z + (velocity.z - floor.z) * PLAYER.limpSlide,
+            x: floor.x + (velocity.x - floor.x) * slide,
+            y: floor.y < 0 ? floor.y : velocity.y,
+            z: floor.z + (velocity.z - floor.z) * slide,
           },
           true,
         );
@@ -934,14 +1062,21 @@ export class GameWorld {
     const inputLength = Math.hypot(input.x, input.z);
     const shrink = inputLength > 1 ? 1 / inputLength : 1;
     // On a moving platform, "standing still" means moving along with it.
-    const targetX = input.x * shrink * PLAYER.runSpeed + (player.grounded ? floor.x : 0);
-    const targetZ = input.z * shrink * PLAYER.runSpeed + (player.grounded ? floor.z : 0);
     const bracing = player.grounded && inputLength < 0.2;
+    // Feet planted against the wind: you lean into it and get pushed much less.
+    const lean = wind && bracing ? WIND.ground - WIND.brace : 0;
+    const targetX = input.x * shrink * PLAYER.runSpeed + (player.grounded ? floor.x - (wind?.x ?? 0) * lean : 0);
+    const targetZ = input.z * shrink * PLAYER.runSpeed + (player.grounded ? floor.z - (wind?.z ?? 0) * lean : 0);
     // In the air with no input you keep your momentum (no invisible brakes).
     const drifting = !player.grounded && inputLength < 0.05;
-    const accel = drifting
-      ? 0
-      : (bracing ? PLAYER.braceAccel : player.grounded ? PLAYER.groundAccel : PLAYER.airAccel) * TICK;
+    const grip = player.onIce
+      ? bracing
+        ? PLAYER.iceBrace
+        : PLAYER.iceAccel
+      : bracing
+        ? PLAYER.braceAccel
+        : PLAYER.groundAccel;
+    const accel = drifting ? 0 : (player.grounded ? grip : PLAYER.airAccel) * TICK;
 
     let dx = targetX - velocity.x;
     let dz = targetZ - velocity.z;
@@ -950,10 +1085,12 @@ export class GameWorld {
       dx *= accel / gap;
       dz *= accel / gap;
     }
-    let vy = velocity.y;
+    // ⬆️ On an elevator going down, go down with it (instead of floating off and falling after it).
+    let vy = player.grounded && floor.y < 0 ? floor.y : velocity.y;
 
     if (player.jumpBuffer > 0 && player.coyote > 0) {
-      vy = PLAYER.jumpSpeed;
+      // Jumping off a rising elevator throws you a little higher.
+      vy = PLAYER.jumpSpeed + Math.max(0, floor.y);
       player.jumpBuffer = 0;
       player.coyote = 0;
       player.grounded = false;
@@ -967,6 +1104,11 @@ export class GameWorld {
 
     let vx = velocity.x + dx;
     let vz = velocity.z + dz;
+    if (wind && !player.grounded) {
+      // 💨 In the air the wind blows you sideways.
+      vx += wind.x * WIND.air * TICK;
+      vz += wind.z * WIND.air * TICK;
+    }
     if (player.hangPoint && drifting) {
       // Dangling: swings slowly calm down (air drag), so you're not a pendulum forever.
       vx *= PLAYER.swingDrag;
@@ -1012,7 +1154,9 @@ export class GameWorld {
   private touchingFloor(player: PlayerBody) {
     const { body } = player;
     const p = body.translation();
-    player.floorVelocity = { x: 0, z: 0 };
+    player.floorVelocity = { x: 0, y: 0, z: 0 };
+    player.onIce = false;
+    player.floorBounce = 0;
     const reach = FEET_TO_CENTER + 0.08;
     const r = PLAYER.radius * 0.7;
     const offsets = [
@@ -1028,6 +1172,13 @@ export class GameWorld {
       if (hit) {
         const mover = this.moverByCollider.get(hit.collider.handle);
         if (mover) player.floorVelocity = moverVelocityAt(mover, this.time, p.x, p.z);
+        const brick = this.brickByCollider.get(hit.collider.handle);
+        if (brick?.conveyor) {
+          player.floorVelocity.x += brick.conveyor.x;
+          player.floorVelocity.z += brick.conveyor.z;
+        }
+        player.onIce = !!brick?.ice;
+        player.floorBounce = brick?.bounce ?? 0;
         return true;
       }
     }

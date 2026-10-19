@@ -40,9 +40,14 @@ export type SnapRope = number[];
 
 /**
  * Something that just happened, for sounds and confetti:
- * ['hit', x, y, z] a punch landed · ['cp', team, checkpoint] · ['fin', team] · ['fall', team]
+ * ['hit', x, y, z] a punch landed · ['boing', x, y, z] a trampoline bounce · ['cp', team, checkpoint] · ['fin', team] · ['fall', team]
  */
-export type SnapEvent = ['hit', number, number, number] | ['cp', number, number] | ['fin', number] | ['fall', number];
+export type SnapEvent =
+  | ['hit', number, number, number]
+  | ['boing', number, number, number]
+  | ['cp', number, number]
+  | ['fin', number]
+  | ['fall', number];
 
 /** Game page → server */
 export type ClientMessage =

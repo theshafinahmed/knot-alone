@@ -12,6 +12,12 @@
       "runtimeExecutable": "npx",
       "runtimeArgs": ["tsx", "server/index.ts", "--local", "--port=3100"],
       "port": 3100
+    },
+    {
+      "name": "knot-alone-lab",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["tsx", "server/index.ts", "--local", "--port=3101", "--course=lab"],
+      "port": 3101
     }
   ]
 }

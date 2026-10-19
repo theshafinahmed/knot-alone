@@ -73,9 +73,9 @@
 
 ## The course and the race (Step 6)
 
-- **Course recipe** (`shared/course.ts` types, `shared/sky-course.ts` the Sky Course): still `bricks` (boxes or round `disc`s), moving parts `movers` (`spin` or `slide`), `checkpoints` (pad size + which way the course goes), and a `finish` zone.
+- **Course recipe** (`shared/course.ts` types, `shared/sky-course.ts` the Sky Course): still `bricks` (boxes or round `disc`s), moving parts `movers` (`spin`, `slide` — along `y` it's an elevator — or `swing` for a hammer), bricks can be `ice`, have a `conveyor` push or a trampoline `bounce`, `winds` (boxes of gusty wind), `checkpoints` (pad size + which way the course goes), and a `finish` zone.
 - **Moving parts follow a clock.** `moverPose(mover, time)` says where a part is at any moment. The server moves them as Rapier **kinematic bodies** (they push players). Phones draw them with the same function and the same clock (race time from the snapshots + `COUNTDOWN`), so they match without extra messages.
-- **Carrying you:** the ground check notes which collider you stand on. If it's a moving part, `moverVelocityAt` gives the floor's speed and it's added to your target speed. So "standing still" on a disc means turning with it.
+- **Carrying you:** the ground check notes which collider you stand on. If it's a moving part, `moverVelocityAt` gives the floor's speed and it's added to your target speed. So "standing still" on a disc means turning with it. A conveyor brick adds its push the same way. On ice your grip (acceleration) is tiny, so you slide. On an elevator going down you're moved down with it, so you don't float off.
 - **Race rules** (`GameWorld.updateRace`): touching a checkpoint pad further along than your team's last one saves it. Falling (below −40 m) puts your team back at its last checkpoint, lined up and centered on the pad. The team finishes when **every member** stands in the finish zone. The first `COUNTDOWN` (3) seconds nobody can move.
 - **Snapshots** also carry `rt` (race time), `tp` (each team's [checkpoint, finish time or −1]) and `bt` (best time since the server started).
 - **Play again** (↺ / results button) builds a brand-new world with the same teams.

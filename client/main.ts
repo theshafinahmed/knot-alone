@@ -10,7 +10,7 @@ import { Connection, playerToken } from './connection';
 import { GameView } from './game-view';
 import { JoinScreen, LobbyPanel, type Look } from './lobby';
 import { InviteCard } from './invite';
-import { SKY_COURSE } from '../shared/sky-course';
+import { COURSES, COURSE_PATH, DEFAULT_COURSE } from '../shared/courses';
 import { RaceHud } from './race-hud';
 import { sounds } from './sounds';
 import { Confetti } from './confetti';
@@ -51,7 +51,12 @@ const sunDisc = createSun();
 scene.add(sunDisc);
 scene.add(createCloudSea());
 
-const course = SKY_COURSE;
+// Ask the server which course is on (so the page draws the same one). Sky Course if it can't say.
+const courseId = await fetch(COURSE_PATH)
+  .then((res) => res.json() as Promise<{ id: string }>)
+  .then((data) => data.id)
+  .catch(() => DEFAULT_COURSE);
+const course = COURSES[courseId] ?? COURSES[DEFAULT_COURSE];
 const courseView = new CourseView(course);
 scene.add(courseView.group);
 
@@ -317,6 +322,9 @@ function startGame(message: Extract<ServerMessage, { type: 'start' }>) {
   game.onEvent = (event) => {
     if (event[0] === 'hit') {
       sounds.hit();
+    } else if (event[0] === 'boing') {
+      // Only bounces near your camera (a trampoline far away shouldn't boing in your ear).
+      if (camera.position.distanceTo(new THREE.Vector3(event[1], event[2], event[3])) < 30) sounds.boing();
     } else if (event[0] === 'cp') {
       const cp = course.checkpoints[event[2]];
       if (cp) confetti.burst({ x: cp.x, y: cp.y + 0.5, z: cp.z }, event[1] === myTeam ? 90 : 40);

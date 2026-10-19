@@ -12,12 +12,21 @@ import { WebSocketServer } from 'ws';
 import { PORT as DEFAULT_PORT, SOCKET_PATH } from '../shared/config';
 import { initPhysics } from '../shared/sim/world';
 import { Room } from './room';
+import { COURSES, COURSE_PATH, DEFAULT_COURSE } from '../shared/courses';
 import { openTunnel, type TunnelHandle } from './tunnel';
 import QRCode from 'qrcode';
 
 /** The door number. Change it with `npm start -- --port=3100` (or the PORT setting). */
 const portArg = process.argv.find((arg) => arg.startsWith('--port='))?.split('=')[1];
 const PORT = Number(portArg) || Number(process.env.PORT) || DEFAULT_PORT;
+
+/** Which course to play. Change it with `npm start -- --course=lab` (names are in shared/courses.ts). */
+const courseArg = process.argv.find((arg) => arg.startsWith('--course='))?.split('=')[1];
+if (courseArg && !COURSES[courseArg]) {
+  console.error(`❌ No course called "${courseArg}". Try one of: ${Object.keys(COURSES).join(', ')}`);
+  process.exit(1);
+}
+const COURSE_ID = courseArg ?? DEFAULT_COURSE;
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const CLIENT_DIR = path.resolve(ROOT, '../dist/client');
@@ -45,6 +54,11 @@ if (!fs.existsSync(path.join(CLIENT_DIR, 'index.html'))) {
 
 const server = http.createServer((req, res) => {
   const urlPath = decodeURIComponent((req.url ?? '/').split('?')[0]);
+  // The page asks which course is on, so it draws the same one the server plays.
+  if (urlPath === COURSE_PATH) {
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' }).end(JSON.stringify({ id: COURSE_ID }));
+    return;
+  }
   let filePath = path.resolve(CLIENT_DIR, '.' + urlPath);
 
   // Never send files from outside the game folder.
@@ -100,7 +114,7 @@ function compressed(filePath: string, encoding: 'br' | 'gzip') {
 // The physics engine has to load before the room can run a game.
 await initPhysics();
 
-const room = new Room();
+const room = new Room(COURSES[COURSE_ID]);
 const wss = new WebSocketServer({ server, path: SOCKET_PATH });
 wss.on('connection', (socket) => room.connect(socket));
 
@@ -145,6 +159,7 @@ server.listen(PORT, '0.0.0.0', async () => {
 
   console.log('');
   console.log('🪢  Knot Alone server is running!');
+  if (COURSE_ID !== DEFAULT_COURSE) console.log(`   Course: ${COURSES[COURSE_ID].name}`);
   console.log('');
   console.log(`   On this computer:   http://localhost:${PORT}`);
   for (const { name, address } of wifi) {

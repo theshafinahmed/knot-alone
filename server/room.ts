@@ -3,7 +3,7 @@
 
 import { WebSocket } from 'ws';
 import { ACTION_CODE, isAction } from '../shared/actions';
-import { SKY_COURSE } from '../shared/sky-course';
+import type { CourseDef } from '../shared/course';
 import { cleanName, HATS, isHat, isShirtColor, SHIRT_COLORS, type Hat } from '../shared/looks';
 import {
   FLAG_GROUNDED,
@@ -56,6 +56,8 @@ interface Game {
 const round = (n: number) => Math.round(n * 100) / 100;
 
 export class Room {
+  constructor(private course: CourseDef) {}
+
   private people = new Map<string, Person>(); // by id
   private phase: Phase = 'lobby';
   private mode: RopeMode = 'chain';
@@ -255,7 +257,7 @@ export class Room {
     );
 
     this.game?.world.dispose();
-    const world = new GameWorld(SKY_COURSE);
+    const world = new GameWorld(this.course);
     const ropes: [string, string, number][] = [];
     teams.forEach((team, t) => {
       team.forEach((id, slot) => world.addPlayer(id, t, slot, teams.length));
@@ -363,6 +365,7 @@ export class Room {
       if (event.kind === 'hit') this.pendingEvents.push(['hit', round(event.x), round(event.y), round(event.z)]);
       else if (event.kind === 'checkpoint') this.pendingEvents.push(['cp', event.team, event.index]);
       else if (event.kind === 'finish') this.pendingEvents.push(['fin', event.team]);
+      else if (event.kind === 'boing') this.pendingEvents.push(['boing', round(event.x), round(event.y), round(event.z)]);
       else this.pendingEvents.push(['fall', event.team]);
     }
     game.world.events = [];

@@ -103,3 +103,26 @@ Design canvas (private): "Knot Alone UI Redesign". Look: toy bricks in the sky, 
 - [ ] **9d. Results card**: mock up on the canvas first, Shafin comments, then build
 - [ ] **9e. Small stuff**: loading screen, "room is full" / error messages, remove the old `.card` / `.big` styles and leftover emoji in text
 - Working rule: build a step → check phone + desktop sizes → Shafin looks → only then commit.
+
+## Step 10 — Harder round + random worlds 🎲 (planned, not started)
+Rule for this step: **work locally. Never commit or push without Shafin's OK.**
+Shafin picked: new obstacles, longer + branching paths, teams racing on one course, host picks difficulty.
+
+**Part A — a hand-made hard course** (invent and test the new rooms)
+- [x] 10a. Six new obstacles (Shafin picked), easy ones first, each tried in a small test room:
+  - [x] ⬆️ Elevator bricks (go up and down) — ✅ Shafin tried it: perfect
+  - [x] ➡️ Conveyor belt (floor pushes you) — ✅ Shafin tried it: perfect
+  - [x] 🧊 Ice bricks (slippery, hard to stop) — ✅ Shafin tried it: perfect
+  - [x] 🦘 Trampoline (bounces you high, yanks friends up) — ✅ Shafin tried it: perfect
+  - [x] 🔨 Swinging hammer (knocks you off the path) — ✅ Shafin tried it: perfect
+  - [x] 💨 Wind zone (blows you and the rope sideways) — ✅ Shafin tried it: perfect
+- [ ] 10b. Forks: short-but-scary vs long-but-safe paths that join again
+- [ ] 10c. Teams share one course (no lanes): wider paths, ropes can tangle with other teams
+- [ ] 10d. Build the hard course from these pieces; Shafin + friends play it
+
+**Part B — random worlds**
+- [ ] 10e. Cut the courses into "rooms" with a danger cost each
+- [ ] 10f. World maker: seed → pick rooms within the difficulty budget → snap them together, checkpoints between rooms, brick limit
+- [ ] 10g. Robot tester: a smarter test robot plays each new world on the server; fail → roll again
+- [ ] 10h. Lobby: course picker (Sky Course / Hard course / 🎲 Random) + Easy / Medium / Hard
+- [ ] 10i. Speed check on a phone-sized screen; Shafin + friends play 5 random worlds

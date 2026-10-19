@@ -113,6 +113,12 @@ class Sounds {
     this.tone(900, 180, 0.7, 'sine', 0.25);
   }
 
+  /** 🦘 A springy trampoline bounce. */
+  boing() {
+    this.tone(150, 520, 0.28, 'sine', 0.3);
+    this.tone(300, 1040, 0.2, 'triangle', 0.08);
+  }
+
   emote() {
     this.tone(700, 1000, 0.12, 'sine', 0.15);
   }
