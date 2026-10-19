@@ -352,6 +352,7 @@ joinScreen.show();
   controls,
   scene,
   camera,
+  renderer,
   connection,
   get game() {
     return game;
@@ -449,12 +450,12 @@ renderer.setAnimationLoop(() => {
   confetti.update(dt);
   // The sun stays far away in the same direction, wherever the camera goes.
   sunDisc.position.set(camera.position.x + 120, camera.position.y + 110, camera.position.z - 160);
-  for (const field of clouds) updateClouds(field, time, camera.position);
-  courseView.hideFarStuds(camera.position);
   const free = testHook.freeCam;
   if (free) {
     camera.position.set(free.x, free.y, free.z);
     camera.lookAt(free.lookX, free.lookY, free.lookZ);
   }
+  for (const field of clouds) updateClouds(field, time, camera.position);
+  courseView.hideFarStuds(camera.position);
   renderer.render(scene, camera);
 });

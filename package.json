@@ -2,6 +2,12 @@
   "name": "knot-alone",
   "version": "0.1.0",
   "description": "A 3D multiplayer phone-browser game where friends are tied together with ropes.",
+  "author": "Shafin Ahmed",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/theshafinahmed/knot-alone.git"
+  },
   "private": true,
   "type": "module",
   "scripts": {
