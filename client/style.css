@@ -1,0 +1,54 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #5ec8ff;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  /* Stop phones from selecting text or zooming when you tap fast. */
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#game {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+#hud {
+  position: fixed;
+  top: max(16px, env(safe-area-inset-top));
+  left: 0;
+  right: 0;
+  text-align: center;
+  color: #fff;
+  pointer-events: none;
+  text-shadow: 0 3px 0 rgba(0, 0, 0, 0.25);
+}
+
+#hud h1 {
+  font-size: clamp(28px, 8vw, 56px);
+  font-weight: 900;
+  letter-spacing: 1px;
+  -webkit-text-stroke: 2px #1d3557;
+}
+
+#status {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(29, 53, 87, 0.6);
+  font-size: 15px;
+  font-weight: 700;
+  text-shadow: none;
+}
