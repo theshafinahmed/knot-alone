@@ -57,7 +57,9 @@
 ## Step 5½ — Fun actions 🎭 (Shafin's idea, added before the course)
 - [x] 👋 Wave, 💃 Dance, 🎉 Cheer, with an emoji bubble over your head
 - [x] 👊 Punch = small shove (~1.2 m stumble), can knock someone off an edge
-- [x] Phone: 👊 button + 😀 menu. Computer: F / click = punch, 1 wave, 2 dance, 3 cheer
+- [x] 🦵 Kick = big, slow shove (~3.6 m). Phone: Kick button above Punch. Computer: G. (added after Step 8)
+- [x] 🪢 Pull button for humans: hold to pull a hanging friend up. Phone: shows only when a friend hangs. Computer: E. (added after Step 8)
+- [x] Phone: Punch button + Emote menu (now a small button top right). Computer: F / click = punch, 1 wave, 2 dance, 3 cheer
 - [x] Shafin tried it with friends ✅ works
 
 ## Step 6 — The real course 🏗️
@@ -96,7 +98,7 @@
 ## Step 9 — New look (UI redesign) 🎨
 Design canvas (private): "Knot Alone UI Redesign". Look: toy bricks in the sky, Fredoka + Nunito fonts, line icons, dark pills, chunky yellow buttons.
 - [x] **9a. HUD + controls**: timer with checkpoint bar, host Retry/Lobby with "Are you sure?" (keys R / L), phone buttons (Jump + Punch in the corner, Pull only when a friend hangs, Emote top right), name tags that scale with distance, key-cap hint bar on computers
-- [x] **9b. Join + Lobby** (built; waiting for Shafin to look on his phone) (already designed on the canvas): name, shirt color, hat, **flat picture** preview in the card, player list, rope mode, robot buddies, Start. Desktop = side card; phone = bottom sheet with the player list.
+- [x] **9b. Join + Lobby** (done and pushed): name, shirt color, hat, **flat picture** preview in the card, player list, rope mode, robot buddies, Start. Desktop = side card; phone = bottom sheet with the player list.
 - [ ] **9c. Invite card**: mock up on the canvas first, Shafin comments, then build
 - [ ] **9d. Results card**: mock up on the canvas first, Shafin comments, then build
 - [ ] **9e. Small stuff**: loading screen, "room is full" / error messages, remove the old `.card` / `.big` styles and leftover emoji in text
