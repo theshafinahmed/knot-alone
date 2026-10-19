@@ -21,45 +21,92 @@
     </div>
 
     <!-- Step 1: type your name, pick a look -->
-    <div id="join" class="screen hidden">
-      <form id="join-form" class="card">
-        <h1>Knot Alone</h1>
-        <p class="tagline">Tied together. Never alone. 🪢</p>
+    <div id="join" class="join hidden">
+      <div class="join-hero">
+        <div class="hero-chip">
+          <span class="hero-chip-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="12" r="5"/><circle cx="15" cy="12" r="5"/></svg></span>
+          Free party game for 2 to 6 friends
+        </div>
+        <h1 class="hero-title">Knot <br />Alone</h1>
+        <p class="hero-tagline">Tied together. Never alone.</p>
+        <p class="hero-blurb">Race across a sky full of toy bricks. Catch your friends when they fall and pull them back up.</p>
+      </div>
 
-        <label class="label" for="name">Your name</label>
-        <input id="name" maxlength="12" autocomplete="off" spellcheck="false" placeholder="Type your name" />
+      <form id="join-form" class="join-card">
+        <div class="card-title">Pick your look</div>
+        <p class="card-sub">Everyone sees your name above your head.</p>
 
-        <div class="label">Shirt color</div>
-        <div id="colors" class="swatches"></div>
+        <div id="join-preview" class="preview" aria-hidden="true">
+          <div class="preview-name"><span class="ptag"><i id="ptag-dot"></i><span id="ptag-name">Your name</span></span></div>
+          <div class="preview-brick"></div>
+          <div class="fc">
+            <b id="fc-hat" class="fc-hat hat-none"></b><i class="fc-h"></i><i class="fc-t"></i><i class="fc-a fc-al"></i><i class="fc-a fc-ar"></i><i class="fc-l fc-ll"></i><i class="fc-l fc-lr"></i>
+          </div>
+        </div>
 
-        <div class="label">Hat</div>
-        <div id="hats" class="swatches"></div>
+        <div class="field">
+          <label class="lbl" for="name">Your name</label>
+          <input id="name" maxlength="12" autocomplete="off" spellcheck="false" placeholder="Type your name" />
+        </div>
 
-        <button id="join-button" class="big" type="submit">Join game</button>
-        <p id="join-message"></p>
+        <div class="field">
+          <div class="lbl">Shirt color</div>
+          <div id="colors" class="swatch-row"></div>
+        </div>
+
+        <div class="field">
+          <div class="lbl">Hat</div>
+          <div id="hats" class="hat-grid"></div>
+        </div>
+
+        <div class="join-actions">
+          <button id="join-button" class="btn-main" type="submit">
+            <span id="join-button-text">Join game</span>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
+          </button>
+          <p id="join-message"></p>
+          <p id="join-waiting" class="hidden"><span class="live"></span><span id="join-waiting-text"></span></p>
+        </div>
       </form>
     </div>
 
     <!-- Step 2: the lobby (everyone waiting for the host to press Start) -->
-    <div id="lobby" class="sheet hidden">
-      <div class="sheet-head">
-        <b>Lobby</b>
-        <span id="lobby-count"></span>
-        <button id="open-invite" class="small-button" type="button">📨 Invite</button>
-        <button id="edit-look" class="small-button" type="button">✏️ My look</button>
+    <div id="lobby" class="lobby hidden">
+      <div class="lobby-head">
+        <div class="card-title">Lobby</div>
+        <span id="lobby-count" class="count-badge"></span>
+      </div>
+      <div class="lobby-actions">
+        <button id="open-invite" class="btn-soft" type="button">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 12l16-8-6 16-3-7z" /></svg>
+          Invite friends
+        </button>
+        <button id="edit-look" class="btn-soft" type="button">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20l1-5L16 4l4 4L9 19z" /></svg>
+          My look
+        </button>
       </div>
       <ul id="lobby-list"></ul>
 
       <div id="host-controls" class="hidden">
-        <div class="label">Rope mode</div>
-        <div id="modes" class="segmented"></div>
-        <div class="label">Robot buddies</div>
-        <div class="stepper">
-          <button id="bots-minus" type="button">−</button>
-          <span id="bots-count">0</span>
-          <button id="bots-plus" type="button">+</button>
+        <div class="divider"></div>
+        <div class="lbl">Rope mode</div>
+        <div id="modes" class="seg"></div>
+        <div class="bots-row">
+          <div>
+            <div class="lbl">Robot buddies</div>
+            <div class="muted">Fill empty spots</div>
+          </div>
+          <div class="stepper">
+            <button id="bots-minus" class="step" type="button" aria-label="Fewer robots"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M6 12h12" /></svg></button>
+            <span id="bots-count">0</span>
+            <button id="bots-plus" class="step" type="button" aria-label="More robots"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M6 12h12M12 6v12" /></svg></button>
+          </div>
         </div>
-        <button id="start-button" class="big" type="button">▶ Start</button>
+        <button id="start-button" class="btn-main" type="button">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5v14l11-7z" /></svg>
+          Start race
+        </button>
       </div>
       <p id="waiting" class="hidden">Waiting for the host to press Start…</p>
     </div>

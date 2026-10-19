@@ -182,7 +182,7 @@ body {
   }
 }
 
-/* ---------- Join screen ---------- */
+/* ---------- Shared screen pieces (Invite, Confirm still use these) ---------- */
 
 .screen {
   position: fixed;
@@ -203,67 +203,6 @@ body {
   box-shadow: 0 10px 0 rgba(0, 0, 0, 0.12), 0 20px 40px rgba(0, 0, 0, 0.2);
   color: #1d3557;
   user-select: text;
-}
-
-.card h1 {
-  font-size: 34px;
-  font-weight: 900;
-  text-align: center;
-  color: #e63946;
-}
-
-.tagline {
-  margin: 2px 0 16px;
-  text-align: center;
-  font-weight: 700;
-  opacity: 0.7;
-}
-
-.label {
-  display: block;
-  margin: 14px 0 6px;
-  font-size: 13px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  opacity: 0.6;
-}
-
-#name {
-  width: 100%;
-  height: 46px;
-  padding: 0 14px;
-  border: 3px solid #d0dbe8;
-  border-radius: 12px;
-  font: 800 18px system-ui, sans-serif;
-  color: #1d3557;
-  outline: none;
-}
-
-#name:focus {
-  border-color: #2a9df4;
-}
-
-.swatches {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.swatches button {
-  width: 40px;
-  height: 40px;
-  border: 3px solid transparent;
-  border-radius: 12px;
-  background: #eef3f8;
-  font-size: 22px;
-  cursor: pointer;
-  touch-action: pan-y; /* "manipulation" would still allow pinch-zoom */
-}
-
-.swatches button.picked {
-  border-color: #1d3557;
-  transform: scale(1.08);
 }
 
 button.big {
@@ -289,140 +228,1029 @@ button.big:disabled {
   opacity: 0.5;
 }
 
-#join-message {
-  min-height: 20px;
-  margin-top: 10px;
-  text-align: center;
-  font-weight: 700;
-  color: #e63946;
+/* ---------- Join + Lobby: shared bits ---------- */
+
+.lbl {
+  display: block;
+  font: 800 13px var(--body);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #4a5c7a;
 }
 
-/* ---------- Lobby (bottom sheet) ---------- */
-
-.sheet {
-  position: fixed;
-  left: 50%;
-  bottom: 0;
-  transform: translateX(-50%);
-  width: min(460px, 100%);
-  max-height: 62%;
-  overflow-y: auto;
-  padding: 16px 16px max(16px, env(safe-area-inset-bottom));
-  border-radius: 22px 22px 0 0;
-  background: #ffffff;
-  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.18);
-  color: #1d3557;
-  touch-action: pan-y;
+.card-title {
+  font: 600 36px/1.1 var(--disp);
+  color: var(--navy);
 }
 
-.sheet-head {
+.card-sub {
+  margin-top: 6px;
+  font: 700 16px var(--body);
+  color: #4a5c7a;
+}
+
+.muted {
+  margin-top: 2px;
+  font: 700 14px var(--body);
+  color: #4a5c7a;
+}
+
+/* The big yellow button */
+.btn-main {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 18px;
-}
-
-.sheet-head #lobby-count {
-  flex: 1;
-  font-size: 14px;
-  font-weight: 700;
-  opacity: 0.6;
-}
-
-.small-button {
-  height: 32px;
-  padding: 0 10px;
-  border: 2px solid #d0dbe8;
-  border-radius: 10px;
-  background: #fff;
-  color: #1d3557;
-  font: 700 13px system-ui, sans-serif;
-  cursor: pointer;
-}
-
-#lobby-list {
-  list-style: none;
-  margin-top: 10px;
-}
-
-#lobby-list li {
-  display: flex;
-  align-items: center;
+  justify-content: center;
   gap: 10px;
-  padding: 7px 4px;
-  border-bottom: 1px solid #eef3f8;
-  font-weight: 800;
-}
-
-#lobby-list .dot {
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-}
-
-#lobby-list .tag {
-  margin-left: auto;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: #eef3f8;
-  font-size: 12px;
-}
-
-#lobby-list .away {
-  opacity: 0.45;
-}
-
-.segmented {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.segmented button {
-  flex: 1 1 auto;
-  height: 40px;
-  padding: 0 10px;
-  border: 2px solid #d0dbe8;
-  border-radius: 12px;
-  background: #fff;
-  color: #1d3557;
-  font: 800 14px system-ui, sans-serif;
+  width: 100%;
+  height: 64px;
+  border: none;
+  border-radius: 16px;
+  background: var(--yellow);
+  box-shadow: 0 6px 0 #d49a00;
+  color: var(--navy);
+  font: 600 26px var(--disp);
   cursor: pointer;
   touch-action: pan-y; /* "manipulation" would still allow pinch-zoom */
 }
 
-.segmented button.picked {
-  border-color: #2a9df4;
-  background: #e3f2fd;
+.btn-main:hover {
+  background: #ffcf33;
 }
 
-.segmented button:disabled {
+.btn-main:active {
+  transform: translateY(3px);
+  box-shadow: 0 3px 0 #d49a00;
+}
+
+.btn-main:disabled {
+  opacity: 0.5;
+}
+
+/* The quiet button next to it */
+.btn-soft {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 48px;
+  border: none;
+  border-radius: 16px;
+  background: #eef5fc;
+  box-shadow: 0 5px 0 #dce6f2;
+  color: var(--navy);
+  font: 800 16px var(--body);
+  cursor: pointer;
+  touch-action: pan-y;
+}
+
+.btn-soft:hover {
+  background: #e2eefa;
+}
+
+.btn-soft:active {
+  transform: translateY(3px);
+  box-shadow: 0 2px 0 #dce6f2;
+}
+
+.btn-soft.hidden {
+  display: none;
+}
+
+.dot {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--c, #888);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font: 800 11px var(--body);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.badge.gold {
+  background: var(--yellow);
+  color: var(--navy);
+}
+
+.badge.soft {
+  background: #dbe7f5;
+  color: var(--navy);
+}
+
+.count-badge {
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: #dbe7f5;
+  color: var(--navy);
+  font: 800 13px var(--body);
+  white-space: nowrap;
+}
+
+.divider {
+  height: 3px;
+  margin: 20px 0 16px;
+  border-radius: 2px;
+  background: #dce6f2;
+}
+
+/* ---------- Join screen ---------- */
+
+.join {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 48px;
+  padding: 40px 96px;
+  overflow-y: auto;
+  touch-action: pan-y;
+}
+
+/* Auto margins center each column, but never push the top off-screen on short windows. */
+.join-hero {
+  flex: 1;
+  min-width: 0;
+  margin-block: auto;
+}
+
+.hero-chip {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: fit-content;
+  height: 52px;
+  padding: 0 20px 0 10px;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 5px 0 rgba(20, 35, 63, 0.18);
+  color: var(--navy);
+  font: 800 17px var(--body);
+}
+
+.hero-chip-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--yellow);
+}
+
+.hero-title {
+  margin-top: 26px;
+  font: 700 112px/1.05 var(--disp);
+  color: #fff;
+  -webkit-text-stroke: 14px var(--navy);
+  paint-order: stroke fill;
+  text-shadow: 0 8px 0 var(--navy);
+}
+
+.hero-tagline {
+  margin-top: 30px;
+  font: 800 32px var(--body);
+  color: #fff;
+  -webkit-text-stroke: 6px var(--navy);
+  paint-order: stroke fill;
+  text-shadow: 0 3px 0 var(--navy);
+}
+
+.hero-blurb {
+  max-width: 460px;
+  margin-top: 12px;
+  font: 800 20px/1.45 var(--body);
+  color: #fff;
+  -webkit-text-stroke: 5px var(--navy);
+  paint-order: stroke fill;
+  text-shadow: 0 2px 0 var(--navy);
+}
+
+.join-card {
+  position: relative;
+  flex: none;
+  width: 480px;
+  margin-block: auto;
+  padding: 28px 32px;
+  border-radius: 24px;
+  background: #fff;
+  box-shadow: 0 8px 0 rgba(20, 35, 63, 0.16), 0 24px 48px rgba(20, 60, 120, 0.2);
+  color: var(--navy);
+  user-select: text;
+}
+
+.join-card::before,
+.lobby::before {
+  content: '';
+  position: absolute;
+  left: 24px;
+  right: 24px;
+  top: -10px;
+  height: 12px;
+  background: radial-gradient(ellipse 14px 11px at 50% 100%, #fff 0 98%, transparent 100%) 0 0 / 38px 12px repeat-x;
+}
+
+.field {
+  margin-top: 14px;
+}
+
+.field .lbl {
+  margin-bottom: 8px;
+}
+
+#name {
+  width: 100%;
+  height: 56px;
+  padding: 0 18px;
+  border: 3px solid #dce6f2;
+  border-radius: 16px;
+  background: #fff;
+  color: var(--navy);
+  font: 700 20px var(--body);
+  outline: none;
+  user-select: text;
+}
+
+#name:focus {
+  border-color: #2d9cf0;
+  box-shadow: 0 0 0 4px rgba(45, 156, 240, 0.35);
+}
+
+/* Shirt colors: eight squares in one row */
+.swatch-row {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.sw {
+  position: relative;
+  height: 44px;
+  border: none;
+  border-radius: 14px;
+  background: var(--c);
+  box-shadow: inset 0 -5px 0 rgba(0, 0, 0, 0.18);
+  cursor: pointer;
+  touch-action: pan-y;
+}
+
+.sw.picked {
+  outline: 4px solid var(--navy);
+  outline-offset: 3px;
+}
+
+.sw.picked::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 14px;
+  height: 8px;
+  border-left: 4px solid #fff;
+  border-bottom: 4px solid #fff;
+  transform: translate(-50%, -65%) rotate(-45deg);
+}
+
+/* Hats: a grid of little name buttons */
+.hat-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.chip {
+  height: 44px;
+  padding: 0 4px;
+  border: 3px solid #dce6f2;
+  border-radius: 14px;
+  background: #fff;
+  color: var(--navy);
+  font: 700 14px var(--body);
+  white-space: nowrap;
+  cursor: pointer;
+  touch-action: pan-y;
+}
+
+.chip.picked {
+  border-color: var(--navy);
+  background: var(--navy);
+  color: #fff;
+}
+
+.join-card .btn-main {
+  margin-top: 22px;
+}
+
+#join-message {
+  min-height: 0;
+  margin-top: 10px;
+  text-align: center;
+  font: 800 15px var(--body);
+  color: var(--red);
+}
+
+#join-message:empty {
+  display: none;
+}
+
+#join-waiting {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-top: 14px;
+  font: 700 15px var(--body);
+  color: #4a5c7a;
+}
+
+/* The flat picture of my character */
+.preview {
+  position: relative;
+  height: 176px;
+  margin-top: 16px;
+  border-radius: 20px;
+  background: linear-gradient(180deg, #8fd3ff, #d6f0ff);
+  overflow: hidden;
+}
+
+.preview-name {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 6px;
+  display: flex;
+  justify-content: center;
+}
+
+.ptag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 90%;
+  height: 32px;
+  padding: 0 14px 0 10px;
+  border-radius: 999px;
+  background: rgba(20, 35, 63, 0.86);
+  color: #fff;
+  font: 800 16px var(--body);
+  white-space: nowrap;
+}
+
+.ptag i {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.ptag span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.preview-brick {
+  position: absolute;
+  left: 50%;
+  top: 148px;
+  width: 240px;
+  height: 28px;
+  margin-left: -120px;
+  border-radius: 8px;
+  background: var(--red);
+  box-shadow: inset 0 -8px 0 rgba(0, 0, 0, 0.16);
+}
+
+.preview-brick::before {
+  content: '';
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  top: -9px;
+  height: 10px;
+  background: radial-gradient(ellipse 13px 10px at 50% 100%, var(--red) 0 98%, transparent 100%) 0 0 / 34px 10px repeat-x;
+}
+
+.fc {
+  position: absolute;
+  left: 50%;
+  top: 38px;
+  width: 56px;
+  height: 112px;
+  margin-left: -28px;
+}
+
+.fc i,
+.fc b {
+  position: absolute;
+  display: block;
+}
+
+.fc-h {
+  left: 10px;
+  top: 0;
+  width: 36px;
+  height: 34px;
+  border-radius: 7px;
+  background: #f2c078;
+  box-shadow: inset 0 -4px 0 rgba(0, 0, 0, 0.1);
+}
+
+.fc-h::before {
+  content: '';
+  position: absolute;
+  left: 9px;
+  top: 13px;
+  width: 5px;
+  height: 6px;
+  border-radius: 2px;
+  background: var(--navy);
+  box-shadow: 13px 0 0 var(--navy);
+}
+
+.fc-h::after {
+  content: '';
+  position: absolute;
+  left: 12px;
+  top: 21px;
+  width: 12px;
+  height: 6px;
+  border-bottom: 3px solid var(--navy);
+  border-radius: 0 0 8px 8px;
+}
+
+.fc-t {
+  left: 8px;
+  top: 36px;
+  width: 40px;
+  height: 40px;
+  border-radius: 7px;
+  background: var(--c, #7b2cbf);
+  box-shadow: inset 0 -5px 0 rgba(0, 0, 0, 0.18);
+}
+
+.fc-t::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 7px;
+  border-radius: 0 0 7px 7px;
+  background: repeating-linear-gradient(90deg, #fff 0 5px, #e63946 5px 10px);
+}
+
+.fc-a {
+  top: 38px;
+  width: 11px;
+  height: 32px;
+  border-radius: 6px;
+  background: #f2c078;
+}
+
+.fc-al {
+  left: -3px;
+}
+
+.fc-ar {
+  right: -3px;
+}
+
+.fc-l {
+  top: 76px;
+  width: 17px;
+  height: 34px;
+  border-radius: 6px;
+  background: #27385a;
+}
+
+.fc-ll {
+  left: 10px;
+}
+
+.fc-lr {
+  right: 10px;
+}
+
+/* Hats for the flat picture (same ten as in the game) */
+.fc-hat {
+  z-index: 2;
+  left: 0;
+  top: 0;
+  width: 56px;
+  height: 0;
+}
+
+.fc-hat::before,
+.fc-hat::after {
+  content: '';
+  position: absolute;
+}
+
+.fc-hat.hat-cap::before {
+  left: 8px;
+  top: -9px;
+  width: 40px;
+  height: 15px;
+  border-radius: 20px 20px 4px 4px;
+  background: #2d9cf0;
+}
+
+.fc-hat.hat-tophat::before {
+  left: 12px;
+  top: -22px;
+  width: 32px;
+  height: 24px;
+  border-radius: 3px;
+  background: #1b1f2a;
+  box-shadow: 0 6px 0 -1px #1b1f2a, -6px 6px 0 -2px #1b1f2a, 6px 6px 0 -2px #1b1f2a;
+}
+
+.fc-hat.hat-crown::before {
+  left: 12px;
+  top: -15px;
+  width: 32px;
+  height: 18px;
+  background: #ffc300;
+  clip-path: polygon(0 100%, 0 20%, 25% 62%, 50% 0, 75% 62%, 100% 20%, 100% 100%);
+}
+
+.fc-hat.hat-party::before {
+  left: 14px;
+  top: -32px;
+  width: 0;
+  height: 0;
+  border-left: 14px solid transparent;
+  border-right: 14px solid transparent;
+  border-bottom: 36px solid #e63946;
+}
+
+.fc-hat.hat-straw::before {
+  left: 0;
+  top: -3px;
+  width: 56px;
+  height: 9px;
+  border-radius: 50%;
+  background: #e8c36a;
+}
+
+.fc-hat.hat-straw::after {
+  left: 12px;
+  top: -13px;
+  width: 32px;
+  height: 14px;
+  border-radius: 14px 14px 2px 2px;
+  background: #e8c36a;
+  box-shadow: inset 0 -4px 0 #c0392b;
+}
+
+.fc-hat.hat-viking::before {
+  left: 8px;
+  top: -9px;
+  width: 40px;
+  height: 15px;
+  border-radius: 20px 20px 4px 4px;
+  background: #8d99ae;
+}
+
+.fc-hat.hat-viking::after {
+  left: 0;
+  top: -22px;
+  width: 56px;
+  height: 18px;
+  background:
+    linear-gradient(#f1e7d0, #f1e7d0) 0 0 / 8px 18px no-repeat,
+    linear-gradient(#f1e7d0, #f1e7d0) 100% 0 / 8px 18px no-repeat;
+  border-radius: 6px 6px 0 0;
+}
+
+.fc-hat.hat-beanie::before {
+  left: 8px;
+  top: -10px;
+  width: 40px;
+  height: 16px;
+  border-radius: 18px 18px 3px 3px;
+  background: #7b2cbf;
+  box-shadow: inset 0 -5px 0 #9d4edd;
+}
+
+.fc-hat.hat-beanie::after {
+  left: 23px;
+  top: -18px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.fc-hat.hat-chef::before {
+  left: 11px;
+  top: -24px;
+  width: 34px;
+  height: 26px;
+  border-radius: 14px 14px 3px 3px;
+  background: #fff;
+  box-shadow: inset 0 -6px 0 #e3e8f0;
+}
+
+.fc-hat.hat-propeller::before {
+  left: 10px;
+  top: -7px;
+  width: 36px;
+  height: 11px;
+  border-radius: 10px 10px 2px 2px;
+  background: #2d9cf0;
+}
+
+.fc-hat.hat-propeller::after {
+  left: 6px;
+  top: -13px;
+  width: 44px;
+  height: 5px;
+  border-radius: 3px;
+  background: #1d3557;
+}
+
+/* ---------- Lobby ---------- */
+
+.lobby {
+  position: fixed;
+  right: 56px;
+  top: 72px;
+  display: flex;
+  flex-direction: column;
+  width: 460px;
+  max-height: calc(100% - 96px);
+  padding: 28px;
+  border-radius: 24px;
+  background: #fff;
+  box-shadow: 0 8px 0 rgba(20, 35, 63, 0.16), 0 24px 48px rgba(20, 60, 120, 0.2);
+  color: var(--navy);
+  touch-action: pan-y;
+}
+
+.lobby-head {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.lobby-actions {
+  display: flex;
+  flex: none;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+#lobby-list {
+  display: flex;
+  flex: 0 1 auto;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 56px;
+  margin-top: 18px;
+  overflow-y: auto;
+  list-style: none;
+}
+
+#lobby-list li {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 12px;
+  height: 48px;
+  padding: 0 12px;
+  border-radius: 14px;
+  background: #eef5fc;
+  font: 800 17px var(--body);
+}
+
+#lobby-list li.away {
+  opacity: 0.55;
+}
+
+.rname {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#host-controls {
+  flex: none;
+}
+
+.seg {
+  display: flex;
+  gap: 5px;
+  padding: 5px;
+  margin-top: 10px;
+  border-radius: 16px;
+  background: #eef5fc;
+}
+
+.seg button {
+  flex: 1;
+  height: 48px;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  color: #4a5c7a;
+  font: 800 15px var(--body);
+  cursor: pointer;
+  touch-action: pan-y;
+}
+
+.seg button.picked {
+  background: #fff;
+  box-shadow: 0 3px 0 #dce6f2;
+  color: var(--navy);
+}
+
+.seg button:disabled {
   opacity: 0.35;
+}
+
+.bots-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 18px;
 }
 
 .stepper {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
+  padding: 5px;
+  border-radius: 16px;
+  background: #eef5fc;
 }
 
-.stepper button {
+.step {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 44px;
-  height: 40px;
-  border: 2px solid #d0dbe8;
+  height: 44px;
+  border: none;
   border-radius: 12px;
   background: #fff;
-  color: #1d3557;
-  font: 900 22px system-ui, sans-serif;
+  box-shadow: 0 3px 0 #dce6f2;
+  color: var(--navy);
   cursor: pointer;
-  touch-action: pan-y; /* "manipulation" would still allow pinch-zoom */
+  touch-action: pan-y;
+}
+
+.step:disabled {
+  opacity: 0.35;
 }
 
 #bots-count {
-  min-width: 20px;
+  min-width: 22px;
   text-align: center;
-  font-size: 20px;
-  font-weight: 900;
+  font: 600 26px var(--disp);
+}
+
+#host-controls .btn-main {
+  margin-top: 24px;
+}
+
+#waiting {
+  margin-top: 18px;
+  text-align: center;
+  font: 800 16px var(--body);
+  color: #4a5c7a;
+}
+
+/* Medium screens: smaller headline, narrower cards */
+@media (max-width: 1100px) {
+  .join {
+    gap: 32px;
+    padding: 32px 48px;
+  }
+
+  .join-card {
+    width: 440px;
+  }
+
+  .hero-title {
+    font-size: 84px;
+    -webkit-text-stroke: 12px var(--navy);
+  }
+
+  .hero-tagline {
+    font-size: 26px;
+  }
+
+  .hero-blurb {
+    display: none;
+  }
+
+  .lobby {
+    right: 32px;
+    width: 420px;
+  }
+}
+
+/* Phones held upright (and narrow windows): the cards become sheets at the bottom */
+@media (max-width: 760px) and (min-height: 521px) {
+  .join {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: space-between;
+    gap: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .join-hero {
+    display: flex;
+    flex: none;
+    flex-direction: column;
+    align-items: center;
+    margin-block: 0;
+    padding: max(32px, env(safe-area-inset-top)) 20px 0;
+    text-align: center;
+  }
+
+  .hero-chip {
+    height: 40px;
+    padding: 0 14px 0 8px;
+    font-size: 14px;
+  }
+
+  .hero-chip-icon {
+    width: 26px;
+    height: 26px;
+    border-radius: 8px;
+  }
+
+  .hero-chip-icon svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .hero-title {
+    margin-top: 16px;
+    font-size: 60px;
+    line-height: 1;
+    -webkit-text-stroke: 11px var(--navy);
+    text-shadow: 0 6px 0 var(--navy);
+  }
+
+  .hero-title br {
+    display: none;
+  }
+
+  .hero-tagline {
+    margin-top: 12px;
+    font-size: 20px;
+  }
+
+  .join-card {
+    width: auto;
+    margin-block: 0;
+    max-height: calc(100% - 150px);
+    padding: 20px 20px max(20px, env(safe-area-inset-bottom));
+    overflow-y: auto;
+    border-radius: 28px 28px 0 0;
+    box-shadow: 0 -8px 32px rgba(20, 60, 120, 0.2);
+  }
+
+  .join-card::before {
+    display: none;
+  }
+
+  .card-title {
+    font-size: 28px;
+  }
+
+  .card-sub {
+    display: none;
+  }
+
+  .preview {
+    height: 150px;
+    margin-top: 12px;
+  }
+
+  .preview-name {
+    display: none;
+  }
+
+  .preview-brick {
+    top: 120px;
+    width: 200px;
+    margin-left: -100px;
+  }
+
+  .fc {
+    top: 8px;
+    transform: scale(0.95);
+    transform-origin: 50% 100%;
+  }
+
+  .field {
+    margin-top: 12px;
+  }
+
+  .hat-grid {
+    display: flex;
+    margin: 0 -20px;
+    padding: 0 20px 4px;
+    overflow-x: auto;
+  }
+
+  .chip {
+    flex: none;
+    padding: 0 16px;
+  }
+
+  .join-card .btn-main {
+    height: 60px;
+    margin-top: 16px;
+    font-size: 24px;
+  }
+
+  #join-waiting {
+    margin-top: 10px;
+  }
+
+  .lobby {
+    left: 0;
+    right: 0;
+    top: auto;
+    bottom: 0;
+    width: auto;
+    max-height: 72%;
+    padding: 20px 20px max(18px, env(safe-area-inset-bottom));
+    border-radius: 28px 28px 0 0;
+    box-shadow: 0 -8px 32px rgba(20, 60, 120, 0.2);
+  }
+
+  .lobby::before {
+    display: none;
+  }
+
+  .lobby .card-title {
+    font-size: 30px;
+  }
+
+  .lobby-actions {
+    margin-top: 12px;
+  }
+
+  #lobby-list {
+    margin-top: 14px;
+  }
+
+  #lobby-list li {
+    height: 42px;
+  }
+
+  .divider {
+    margin: 14px 0 12px;
+  }
+
+  .bots-row {
+    margin-top: 12px;
+  }
+
+  #host-controls .btn-main {
+    height: 62px;
+    margin-top: 14px;
+  }
+}
+
+/* Short screens: the hero chip goes away to leave room */
+@media (max-width: 760px) and (min-height: 521px) and (max-height: 700px) {
+  .hero-chip {
+    display: none;
+  }
+
+  .hero-title {
+    margin-top: 0;
+    font-size: 48px;
+  }
+
+  .join-card {
+    max-height: calc(100% - 110px);
+  }
 }
 
 /* ---------- Invite card ---------- */
@@ -1165,4 +1993,324 @@ body.touch .confirm-buttons .key {
   #host-panel {
     top: calc(max(12px, env(safe-area-inset-top)) + 54px);
   }
+}
+
+/* The join screen has its own big title, so the small logo and online pill step aside. */
+body.joining #logo,
+body.joining #status {
+  display: none;
+}
+
+/* Phones: keep the Join button always in view (the card scrolls behind it), and trim the card. */
+.join-actions {
+  margin-top: 22px;
+}
+
+@media (max-width: 760px) {
+  .join-card {
+    padding-bottom: 0;
+  }
+
+  .join-card .card-title {
+    display: none;
+  }
+
+  .join-card .preview {
+    height: 150px;
+    margin-top: 0;
+  }
+
+  .join-card .preview-brick {
+    top: 122px;
+    height: 28px;
+  }
+
+  .join-card .fc {
+    top: 10px;
+    transform: scale(0.85);
+    transform-origin: 50% 100%;
+  }
+
+  .join-card .field {
+    margin-top: 10px;
+  }
+
+  .join-card .field .lbl {
+    margin-bottom: 6px;
+  }
+
+  #name {
+    height: 50px;
+  }
+
+  .join-actions {
+    position: sticky;
+    bottom: 0;
+    margin: 12px -20px 0;
+    padding: 12px 20px max(20px, env(safe-area-inset-bottom));
+    background: #fff;
+  }
+
+  .join-card .join-actions .btn-main {
+    margin-top: 0;
+  }
+}
+
+.join-card .join-actions .btn-main {
+  margin-top: 0;
+}
+
+/* Laptops and small windows (not tall enough for the whole card): trim it, let it scroll
+   inside itself, and keep the Join button always in view. */
+@media (min-width: 761px) and (max-height: 820px) {
+  .join-card {
+    max-height: calc(100% - 24px);
+    margin-block: 0;
+    padding: 20px 28px 0;
+    overflow-y: auto;
+  }
+
+  .join {
+    align-items: center;
+    padding-block: 12px;
+  }
+
+  .join-card::before,
+  .lobby::before {
+    display: none;
+  }
+
+  .join-card .card-title {
+    font-size: 30px;
+  }
+
+  .join-card .card-sub {
+    display: none;
+  }
+
+  .join-card .preview {
+    height: 150px;
+    margin-top: 12px;
+  }
+
+  .join-card .preview-brick {
+    top: 126px;
+    height: 24px;
+  }
+
+  .join-card .fc {
+    top: 14px;
+    transform: scale(0.85);
+    transform-origin: 50% 100%;
+  }
+
+  .join-card .preview-name {
+    top: 6px;
+    right: auto;
+    left: 10px;
+  }
+
+  .join-card .ptag {
+    max-width: 150px;
+  }
+
+  .join-actions {
+    position: sticky;
+    bottom: 0;
+    margin: 12px -28px 0;
+    padding: 10px 28px 18px;
+    background: #fff;
+  }
+
+  .lobby {
+    top: 24px;
+    max-height: calc(100% - 48px);
+    padding: 20px 24px;
+    overflow-y: auto;
+  }
+
+  #lobby-list {
+    flex: none;
+    overflow: visible;
+  }
+}
+
+/* Phones held sideways (short but wide): two columns, and the cards scroll inside themselves. */
+@media (max-height: 560px) and (min-width: 521px) {
+  .join {
+    padding: 12px 32px;
+    align-items: center;
+  }
+
+  .hero-chip,
+  .hero-blurb {
+    display: none;
+  }
+
+  .hero-title {
+    margin-top: 0;
+    font-size: 56px;
+    -webkit-text-stroke: 9px var(--navy);
+    text-shadow: 0 5px 0 var(--navy);
+  }
+
+  .hero-tagline {
+    margin-top: 16px;
+    font-size: 22px;
+  }
+
+  .join-card {
+    max-height: calc(100% - 4px);
+    margin-block: 0;
+    padding: 16px 20px 0;
+    overflow-y: auto;
+  }
+
+  .join-card::before {
+    display: none;
+  }
+
+  .join-card .card-title,
+  .join-card .card-sub {
+    display: none;
+  }
+
+  .join-card .preview {
+    height: 130px;
+    margin-top: 0;
+  }
+
+  .join-card .preview-brick {
+    top: 104px;
+    height: 26px;
+  }
+
+  .join-card .fc {
+    top: -8px;
+    transform: scale(0.72);
+    transform-origin: 50% 100%;
+  }
+
+  .join-card .preview-name {
+    display: none;
+  }
+
+  .join-actions {
+    position: sticky;
+    bottom: 0;
+    margin: 12px -20px 0;
+    padding: 10px 20px 14px;
+    background: #fff;
+  }
+
+  .join-card .join-actions .btn-main {
+    height: 56px;
+    font-size: 22px;
+  }
+
+  .lobby {
+    top: 12px;
+    max-height: calc(100% - 24px);
+    padding: 16px 20px;
+    overflow-y: auto;
+  }
+
+  .lobby::before {
+    display: none;
+  }
+
+  .lobby .card-title {
+    font-size: 28px;
+  }
+
+  #lobby-list {
+    flex: none;
+    overflow: visible;
+  }
+}
+
+/* Phones: the card takes whatever room the title leaves, and scrolls inside if it needs more. */
+@media (max-width: 760px) and (min-height: 521px) {
+  .join-card {
+    flex: 0 1 auto;
+    min-height: 0;
+    max-height: none;
+  }
+}
+
+/* Small phones: the lobby sheet may use more of the screen so Start is always visible. */
+@media (max-width: 760px) and (min-height: 521px) and (max-height: 700px) {
+  .lobby {
+    max-height: 88%;
+  }
+}
+
+/* Sideways phones: the Start button stays at the bottom of the scrolling card. */
+@media (max-height: 560px) and (min-width: 521px) {
+  #host-controls .btn-main {
+    position: sticky;
+    bottom: 0;
+    box-shadow: 0 6px 0 #d49a00, 0 16px 0 16px #fff;
+  }
+}
+
+/* Narrow phones, menus and lobby: the sound button goes to the top-right (the logo is on the left). */
+@media (max-width: 520px) {
+  body:not(.playing) #mute {
+    left: auto;
+    right: max(12px, env(safe-area-inset-right));
+  }
+}
+
+/* Phones upright: no little "Free party game" chip (it crowded the sound button). */
+@media (max-width: 760px) and (min-height: 521px) {
+  .hero-chip {
+    display: none;
+  }
+
+  .hero-title {
+    margin-top: 0;
+  }
+}
+
+/* The hat row scrolls sideways; no scrollbar needed. */
+.hat-grid {
+  scrollbar-width: none;
+}
+
+.hat-grid::-webkit-scrollbar {
+  display: none;
+}
+
+/* Phones: shirt colors are full-size squares in a row you can swipe sideways (not squashed). */
+@media (max-width: 520px) {
+  .swatch-row {
+    display: flex;
+    gap: 10px;
+    margin: 0 -20px;
+    padding: 6px 20px 8px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .swatch-row::-webkit-scrollbar {
+    display: none;
+  }
+
+  .sw {
+    flex: none;
+    width: 48px;
+    height: 48px;
+  }
+}
+
+/* Swiping the color and hat rows sideways must work even when the finger starts on a button
+   (touch-action: pan-y on the buttons used to block it). No pinch-zoom: both pans, nothing else. */
+.join,
+.join-card,
+.swatch-row,
+.hat-grid,
+.sw,
+.chip {
+  touch-action: pan-x pan-y;
 }

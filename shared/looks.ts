@@ -27,6 +27,20 @@ export const HAT_EMOJI: Record<Hat, string> = {
   propeller: '🚁',
 };
 
+/** Plain names for the hat picker (no emoji, so the page looks the same everywhere). */
+export const HAT_LABEL: Record<Hat, string> = {
+  none: 'None',
+  cap: 'Cap',
+  tophat: 'Top hat',
+  crown: 'Crown',
+  party: 'Party',
+  straw: 'Straw',
+  viking: 'Viking',
+  beanie: 'Beanie',
+  chef: 'Chef',
+  propeller: 'Propeller',
+};
+
 export const NAME_MAX = 12;
 
 /** Trims a name, keeps it short, and gives a default if it's empty. */

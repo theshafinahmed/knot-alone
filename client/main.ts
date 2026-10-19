@@ -151,6 +151,7 @@ function updateStatus() {
   }
   const people = lobbyPlayers.filter((p) => p.online).length;
   statusLabel.textContent = `${people} online`;
+  joinScreen.setOnline(people);
   statusPill.classList.remove('connecting');
 }
 
@@ -164,7 +165,7 @@ function onMessage(message: ServerMessage) {
     case 'full':
       joined = false;
       joinScreen.show();
-      joinScreen.showMessage('😢 The game is full (6 players max).');
+      joinScreen.showMessage('The game is full (6 players max).');
       break;
     case 'lobby':
       lobbyPlayers = message.players;
@@ -208,6 +209,7 @@ function amHost() {
 function refreshScreens() {
   const playing = phase === 'playing' && !!game;
   document.body.classList.toggle('playing', playing);
+  document.body.classList.toggle('joining', joinScreen.isOpen);
   controls.enabled = playing && !isConfirmOpen();
   document.body.classList.toggle('host', playing && amHost());
   if (!playing) closeConfirm();
@@ -260,8 +262,21 @@ function refreshLineup() {
   });
 }
 
+/** How much of the screen the lobby card (right side) or sheet (bottom) covers, in pixels. */
+function lobbyCover() {
+  const card = joinScreen.isOpen ? null : document.getElementById('lobby');
+  if (!card || card.classList.contains('hidden')) return { coverX: 0, coverY: 0 };
+  const box = card.getBoundingClientRect();
+  // A side card is narrow and sits at the right; a sheet spans the width at the bottom.
+  if (box.width < window.innerWidth * 0.8) return { coverX: Math.max(0, window.innerWidth - box.left), coverY: 0 };
+  return { coverX: 0, coverY: Math.max(0, window.innerHeight - box.top) };
+}
+
 function updateLineup(dt: number) {
+  const hide = joinScreen.isOpen; // the join screen has its own big picture of you
   lineup.forEach(({ view }, i) => {
+    view.root.visible = !hide;
+    view.shadow.visible = !hide;
     const x = (i - (lineup.length - 1) / 2) * LINEUP_SPACING;
     view.update(
       dt,
@@ -523,6 +538,7 @@ renderer.setAnimationLoop(() => {
     // ...and never down among the studs: keep the camera at least 0.8 m above the floor under it.
     const below = floors.distanceToFloor(camera.position.x, camera.position.y + 2, camera.position.z, 4);
     if (below !== null) camera.position.y = Math.max(camera.position.y, camera.position.y + 2 - below + 0.8);
+    if (camera.view?.enabled) camera.clearViewOffset(); // the lobby slid the picture; the race doesn't
     camera.lookAt(cameraTarget);
     game.updateTags(camera);
   } else {
@@ -531,11 +547,17 @@ renderer.setAnimationLoop(() => {
     controls.consumeAction();
     courseView.update(time); // moving parts keep moving in the lobby too
     updateLineup(dt);
+    // The lobby card (or sheet) covers part of the screen, so frame everyone in the part that's left.
+    const { coverX, coverY } = lobbyCover();
+    const usableW = Math.max(0.3, 1 - coverX / window.innerWidth);
+    const usableH = Math.max(0.3, 1 - coverY / window.innerHeight);
+    const tanV = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
     const width = Math.max(lineup.length, 1) * LINEUP_SPACING + 2;
-    const halfFov = Math.atan(Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect);
-    const distance = Math.max(7, width / 2 / Math.tan(halfFov));
+    const distance = Math.max(7, width / 2 / (tanV * camera.aspect * usableW), 4.4 / 2 / (tanV * usableH));
     camera.position.set(Math.sin(time * 0.3) * 1.5, 1.2 + distance * 0.25, LINEUP_Z + distance);
-    camera.lookAt(0, 0.4, LINEUP_Z);
+    camera.lookAt(0, 1.3, LINEUP_Z);
+    // Slide the picture away from the card: left of a side card, above a bottom sheet.
+    camera.setViewOffset(window.innerWidth, window.innerHeight, coverX / 2, coverY / 2, window.innerWidth, window.innerHeight);
   }
 
   confetti.update(dt);

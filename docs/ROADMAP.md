@@ -92,3 +92,12 @@
 - [x] Hid Shafin's Gmail from the git history (all commits now use his private GitHub address)
 - [x] Publish the repo — **public** at https://github.com/theshafinahmed/knot-alone with description + topics
 - [ ] (Optional) an animated GIF for the README
+
+## Step 9 — New look (UI redesign) 🎨
+Design canvas (private): "Knot Alone UI Redesign". Look: toy bricks in the sky, Fredoka + Nunito fonts, line icons, dark pills, chunky yellow buttons.
+- [x] **9a. HUD + controls**: timer with checkpoint bar, host Retry/Lobby with "Are you sure?" (keys R / L), phone buttons (Jump + Punch in the corner, Pull only when a friend hangs, Emote top right), name tags that scale with distance, key-cap hint bar on computers
+- [x] **9b. Join + Lobby** (built; waiting for Shafin to look on his phone) (already designed on the canvas): name, shirt color, hat, **flat picture** preview in the card, player list, rope mode, robot buddies, Start. Desktop = side card; phone = bottom sheet with the player list.
+- [ ] **9c. Invite card**: mock up on the canvas first, Shafin comments, then build
+- [ ] **9d. Results card**: mock up on the canvas first, Shafin comments, then build
+- [ ] **9e. Small stuff**: loading screen, "room is full" / error messages, remove the old `.card` / `.big` styles and leftover emoji in text
+- Working rule: build a step → check phone + desktop sizes → Shafin looks → only then commit.

@@ -1,8 +1,8 @@
 // The join screen and the lobby 🏠 (plain web page parts on top of the 3D world).
 
-import { HAT_EMOJI, HATS, NAME_MAX, SHIRT_COLORS, cleanName, type Hat } from '../shared/looks';
+import { HAT_LABEL, HATS, NAME_MAX, SHIRT_COLORS, cleanName, type Hat } from '../shared/looks';
 import type { LobbyPlayer } from '../shared/messages';
-import { MAX_PLAYERS, MODE_LABEL, ROPE_MODES, modeFits, type RopeMode } from '../shared/teams';
+import { MAX_PLAYERS, ROPE_MODES, modeFits, type RopeMode } from '../shared/teams';
 
 export interface Look {
   name: string;
@@ -12,6 +12,18 @@ export interface Look {
 
 const $ = <T extends HTMLElement>(selector: string) => document.querySelector<T>(selector)!;
 const hex = (color: number) => `#${color.toString(16).padStart(6, '0')}`;
+
+/** Short names for the three rope modes (the buttons are narrow on phones). */
+const MODE_NAME: Record<RopeMode, string> = {
+  chain: 'One chain',
+  teams3: 'Teams of 3',
+  teams2: 'Teams of 2',
+};
+
+const ICON_CROWN =
+  '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M4 18l-1-10 5 4 4-7 4 7 5-4-1 10z"/></svg>';
+const ICON_ROBOT =
+  '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="8" width="14" height="10" rx="3"/><path d="M12 8V5"/></svg>';
 
 // ---------- Remember my look on this phone ----------
 
@@ -57,12 +69,14 @@ export class JoinScreen {
     };
     this.nameInput.maxLength = NAME_MAX;
     this.nameInput.value = this.look.name;
+    this.nameInput.addEventListener('input', () => this.refresh());
 
     const colors = $('#colors');
     for (const color of SHIRT_COLORS) {
       const button = document.createElement('button');
       button.type = 'button';
-      button.style.background = hex(color);
+      button.className = 'sw';
+      button.style.setProperty('--c', hex(color));
       button.setAttribute('aria-label', `Shirt color ${hex(color)}`);
       button.addEventListener('click', () => {
         this.look.color = color;
@@ -76,8 +90,8 @@ export class JoinScreen {
     for (const hat of HATS) {
       const button = document.createElement('button');
       button.type = 'button';
-      button.textContent = HAT_EMOJI[hat];
-      button.title = hat;
+      button.className = 'chip';
+      button.textContent = HAT_LABEL[hat];
       button.dataset.hat = hat;
       button.addEventListener('click', () => {
         this.look.hat = hat;
@@ -90,7 +104,7 @@ export class JoinScreen {
       event.preventDefault();
       const name = this.nameInput.value.trim();
       if (!name) {
-        this.showMessage('Type your name first 🙂');
+        this.showMessage('Type your name first');
         this.nameInput.focus();
         return;
       }
@@ -104,7 +118,7 @@ export class JoinScreen {
   }
 
   show(buttonText = 'Join game') {
-    $('#join-button').textContent = buttonText;
+    $('#join-button-text').textContent = buttonText;
     this.showMessage('');
     this.root.classList.remove('hidden');
   }
@@ -121,13 +135,30 @@ export class JoinScreen {
     this.message.textContent = text;
   }
 
+  /** "2 friends are waiting in the lobby" under the Join button. */
+  setOnline(count: number) {
+    const line = $('#join-waiting');
+    line.classList.toggle('hidden', count <= 0);
+    $('#join-waiting-text').textContent = `${count} ${count === 1 ? 'friend is' : 'friends are'} waiting in the lobby`;
+  }
+
   private refresh() {
     for (const button of document.querySelectorAll<HTMLButtonElement>('#colors button')) {
-      button.classList.toggle('picked', Number(button.dataset.color) === this.look.color);
+      const picked = Number(button.dataset.color) === this.look.color;
+      button.classList.toggle('picked', picked);
+      button.setAttribute('aria-pressed', String(picked));
     }
     for (const button of document.querySelectorAll<HTMLButtonElement>('#hats button')) {
-      button.classList.toggle('picked', button.dataset.hat === this.look.hat);
+      const picked = button.dataset.hat === this.look.hat;
+      button.classList.toggle('picked', picked);
+      button.setAttribute('aria-pressed', String(picked));
     }
+    // The flat picture of my character in the card.
+    const color = hex(this.look.color);
+    $('#join-preview').style.setProperty('--c', color);
+    $('#fc-hat').className = `fc-hat hat-${this.look.hat}`;
+    $('#ptag-dot').style.background = color;
+    $('#ptag-name').textContent = this.nameInput.value.trim() || 'Your name';
   }
 }
 
@@ -151,7 +182,7 @@ export class LobbyPanel {
     for (const mode of ROPE_MODES) {
       const button = document.createElement('button');
       button.type = 'button';
-      button.textContent = MODE_LABEL[mode];
+      button.textContent = MODE_NAME[mode];
       button.dataset.mode = mode;
       button.addEventListener('click', () => actions.setMode(mode));
       modes.append(button);
@@ -176,31 +207,44 @@ export class LobbyPanel {
     this.people = players.length;
     const total = this.people + bots;
 
-    $('#lobby-count').textContent = `${this.people} ${this.people === 1 ? 'person' : 'people'}${bots ? ` + ${bots} 🤖` : ''}`;
+    $('#lobby-count').textContent = `${total} of ${MAX_PLAYERS} players`;
+
+    const badge = (text: string, kind: string, icon = '') => {
+      const el = document.createElement('span');
+      el.className = `badge ${kind}`;
+      el.innerHTML = icon;
+      el.append(text);
+      return el;
+    };
 
     const list = $('#lobby-list');
-    list.replaceChildren(
-      ...players.map((player) => {
-        const item = document.createElement('li');
-        if (!player.online) item.classList.add('away');
-        const dot = document.createElement('span');
-        dot.className = 'dot';
-        dot.style.background = hex(player.color);
-        const name = document.createElement('span');
-        name.textContent = `${player.name} ${player.hat === 'none' ? '' : HAT_EMOJI[player.hat]}`;
-        item.append(dot, name);
-        const tags = [player.host ? '👑 host' : '', player.id === myId ? 'you' : '', player.online ? '' : 'away']
-          .filter(Boolean)
-          .join(' · ');
-        if (tags) {
-          const tag = document.createElement('span');
-          tag.className = 'tag';
-          tag.textContent = tags;
-          item.append(tag);
-        }
-        return item;
-      }),
-    );
+    const rows = players.map((player) => {
+      const item = document.createElement('li');
+      if (!player.online) item.classList.add('away');
+      const dot = document.createElement('span');
+      dot.className = 'dot';
+      dot.style.setProperty('--c', hex(player.color));
+      const name = document.createElement('span');
+      name.className = 'rname';
+      name.textContent = player.name;
+      item.append(dot, name);
+      if (player.host) item.append(badge('Host', 'gold', ICON_CROWN));
+      if (player.id === myId) item.append(badge('You', 'soft'));
+      if (!player.online) item.append(badge('Away', 'soft'));
+      return item;
+    });
+    if (bots > 0) {
+      const item = document.createElement('li');
+      const dot = document.createElement('span');
+      dot.className = 'dot';
+      dot.style.setProperty('--c', '#3b4a63');
+      const name = document.createElement('span');
+      name.className = 'rname';
+      name.textContent = bots === 1 ? '1 robot buddy' : `${bots} robot buddies`;
+      item.append(dot, name, badge('Robot', 'soft', ICON_ROBOT));
+      rows.push(item);
+    }
+    list.replaceChildren(...rows);
 
     const amHost = players.some((p) => p.host && p.id === myId);
     $('#host-controls').classList.toggle('hidden', !amHost);

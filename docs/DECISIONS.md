@@ -64,3 +64,5 @@
 | 2026-10-19 | Phone action buttons: Jump big in the corner, the other three climb up from it in a diagonal (fan out when the phone is sideways) | Fanning to the left reached over the movement circle on narrow phones. Names sit inside the buttons. |
 | 2026-10-19 | **Pull button only appears when a friend on your rope is hanging**; Emote is a small top-right button; no dark shade behind the controls | A phone screenshot showed five buttons crowding the right side and covering the view. Pull is rare, Emote is rarer, so they shouldn't take thumb space all the time. |
 | 2026-10-19 | Name tags scale with camera distance (smaller and fainter when close, larger when far) | Close tags were huge and covered the characters. |
+| 2026-10-19 | UI redesign order: **Join + Lobby first**, then Invite and Results (mocked up on the canvas before building) | Shafin's pick. Join + Lobby are the biggest first impression and are already designed. |
+| 2026-10-19 | Join screen preview is a **flat drawn character** in the card, not the real 3D scene | Shafin's pick. Lighter on slow phones and simpler to build. |
