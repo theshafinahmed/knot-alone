@@ -158,6 +158,7 @@ export class Room {
           x: length > 1 ? x / length : x,
           z: length > 1 ? z / length : z,
           jump: person.input.jump || jumped, // stays true until the next physics step uses it
+          pull: message.pull === true,
         };
         break;
       }

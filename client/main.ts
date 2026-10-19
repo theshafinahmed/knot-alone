@@ -259,6 +259,7 @@ const controls = new Controls(canvas, {
   jump: $('#jump'),
   hint: $('#hint'),
   punch: $('#punch'),
+  pull: $('#pull'),
   emote: $('#emote'),
   emoteMenu: $('#emote-menu'),
   hintMove: $('#hint-move'),
@@ -326,6 +327,8 @@ function followedId() {
 const INPUT_RATE = 30;
 let jumps = 0;
 let lastInputSent = 0;
+let wasPulling = false;
+const pullBadge = $('#pull-badge');
 
 function sendInput(now: number, force = false) {
   if (!game || !myId || !game.members.has(myId)) return;
@@ -341,6 +344,7 @@ function sendInput(now: number, force = false) {
     x: Math.round((-sin * move.y + cos * move.x) * 100) / 100,
     z: Math.round((-cos * move.y - sin * move.x) * 100) / 100,
     jumps,
+    pull: controls.isPulling(),
   });
 }
 
@@ -386,7 +390,10 @@ renderer.setAnimationLoop(() => {
       sounds.jump();
       sendInput(now, true); // send jumps right away
     }
-    sendInput(now);
+    const pulling = controls.isPulling();
+    sendInput(now, pulling !== wasPulling); // send pull start/stop right away
+    wasPulling = pulling;
+    pullBadge.classList.toggle('hidden', !pulling);
     const action = controls.consumeAction();
     if (action && myId && game.members.has(myId)) {
       connection.send({ type: 'action', action });

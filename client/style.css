@@ -731,6 +731,35 @@ body.touch.playing #jump {
   background: rgba(230, 57, 70, 0.8);
 }
 
+/* Pull (hold it): above the 😀 button, away from the movement circle */
+#pull {
+  width: 58px;
+  height: 58px;
+  right: calc(max(28px, env(safe-area-inset-right)) + 15px);
+  bottom: calc(max(36px, env(safe-area-inset-bottom)) + 176px);
+  font-size: 28px;
+  background: rgba(42, 157, 143, 0.8);
+}
+
+/* Small pill that shows while you hold pull (so you can see the key/button registered) */
+#pull-badge {
+  position: fixed;
+  left: 50%;
+  bottom: 28%;
+  transform: translateX(-50%);
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: rgba(42, 157, 143, 0.92);
+  color: #fff;
+  font-weight: 800;
+  pointer-events: none;
+}
+
+#pull-badge.hidden,
+body:not(.playing) #pull-badge {
+  display: none;
+}
+
 #emote {
   width: 58px;
   height: 58px;

@@ -48,8 +48,8 @@ export type SnapEvent = ['hit', number, number, number] | ['cp', number, number]
 export type ClientMessage =
   /** Join the game (or change your look). The token lets you come back after a dropped connection. */
   | { type: 'join'; token: string; name: string; color: number; hat: Hat }
-  /** What your controls are doing. `jumps` counts every jump press ever, so none get lost. */
-  | { type: 'input'; x: number; z: number; jumps: number }
+  /** What your controls are doing. `jumps` counts every jump press ever, so none get lost. `pull` = holding the pull button. */
+  | { type: 'input'; x: number; z: number; jumps: number; pull?: boolean }
   /** Do a fun action: wave, punch, dance or cheer. */
   | { type: 'action'; action: ActionKind }
   /** Host only: change the rope mode or the number of bots. */

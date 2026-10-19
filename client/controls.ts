@@ -2,6 +2,7 @@
 // Phone: movement circle in the bottom-left corner, drag anywhere else to look, big button = jump.
 // Computer: WASD / arrows = move, Space = jump, mouse = look (click the game first).
 // Fun actions: phone = 👊 button + 😀 menu; computer = F or click to punch, 1 wave, 2 dance, 3 cheer.
+// Pull a hanging friend up: phone = hold the 🪢 button; computer = hold E.
 
 import { isAction, type ActionKind } from '../shared/actions';
 
@@ -43,6 +44,7 @@ export class Controls {
 
   private keys = new Set<string>();
   private jumpQueued = false;
+  private pullButton = false;
   private actionQueued: ActionKind | null = null;
   private stick = { x: 0, y: 0 };
   private stickPointer: number | null = null;
@@ -59,6 +61,7 @@ export class Controls {
       jump: HTMLElement;
       hint: HTMLElement;
       punch: HTMLElement;
+      pull: HTMLElement;
       emote: HTMLElement;
       emoteMenu: HTMLElement;
       hintMove: HTMLElement;
@@ -101,6 +104,20 @@ export class Controls {
       });
     }
 
+    // 🪢 Pull button: hold it to reel in a friend hanging below you.
+    ui.pull.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      this.pullButton = true;
+      ui.pull.classList.add('pressed');
+    });
+    const releasePull = () => {
+      this.pullButton = false;
+      ui.pull.classList.remove('pressed');
+    };
+    ui.pull.addEventListener('pointerup', releasePull);
+    ui.pull.addEventListener('pointercancel', releasePull);
+    ui.pull.addEventListener('pointerleave', releasePull);
+
     ui.jump.addEventListener('pointerdown', (e) => {
       this.jumpQueued = true;
       ui.jump.classList.add('pressed');
@@ -134,6 +151,11 @@ export class Controls {
     const action = this.actionQueued;
     this.actionQueued = null;
     return action;
+  }
+
+  /** True while the pull button (phone) or the E key (computer) is held. */
+  isPulling() {
+    return this.enabled && (this.pullButton || this.keys.has('KeyE'));
   }
 
   /** True once per jump press. */

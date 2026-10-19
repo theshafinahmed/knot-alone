@@ -35,7 +35,7 @@ Inspired by a co-op rope game seen in a streamer video (players tied with stripe
 - If you fall off an edge, your rope can catch you and you **hang** off the side.
 - A friend who is **standing still plants their feet** and can hold you.
 - **Tap jump while hanging** to climb up the rope, hand over hand.
-- A friend on top can **pull you up** (bots do this automatically; a "pull" button for humans may come later).
+- A friend on top can **pull you up** (bots do this automatically; humans **hold the 🪢 button on a phone, or the E key on a computer**).
 - When you get close to the top, you **scramble over the edge** automatically.
 - Land too hard (big fall) and you lie flat like a starfish for about 1 second. ⭐
 

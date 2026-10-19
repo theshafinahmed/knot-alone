@@ -60,6 +60,7 @@ That's it! Keep the computer **on and awake** while you play (plugged in, sleep 
 | Look around | Swipe anywhere else | Mouse (click the game first, Esc to free the mouse) |
 | Jump | ⤒ button | Space |
 | Climb up the rope (while hanging) | Tap ⤒ again and again | Tap Space |
+| Pull a hanging friend up (stand still on solid ground) | Hold the 🪢 button | Hold E |
 | Punch 👊 | 👊 button | F or click |
 | Wave / Dance / Cheer | 😀 button → pick one | 1 / 2 / 3 |
 
