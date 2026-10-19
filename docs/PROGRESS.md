@@ -6,7 +6,7 @@
 
 - **Current step:** Step 0 (Planning) is ✅ done. **Next up: Step 1, an empty project that runs.** See [ROADMAP.md](ROADMAP.md).
 - **Code written so far:** none yet. Only docs.
-- **Git:** not set up yet (part of Step 1).
+- **Git:** ✅ set up. Private repo at https://github.com/theshafinahmed/knot-alone (branch `main`). Make it public at Step 8.
 - **Computer setup:** Windows 11, Node.js v24, npm v11, git v2.54 already installed.
 
 ## Open questions (not decided yet)

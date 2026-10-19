@@ -13,7 +13,7 @@
 - [ ] Set up folders (`client/`, `server/`, `shared/`) and `package.json`
 - [ ] `npm start` starts the server and shows a blue sky + one brick platform
 - [ ] Open it on a phone on the **same Wi-Fi** and see it work
-- [ ] Put the project in git
+- [x] Put the project in git
 
 ## Step 2 — One blocky guy that runs and jumps 🏃
 - [ ] Blocky character built from boxes
