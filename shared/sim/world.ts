@@ -4,6 +4,7 @@
 
 import RAPIER from '@dimforge/rapier3d-compat';
 import { BRICK_HEIGHT, type CourseDef } from '../course';
+import { ACTION_TIME, PUNCH, type ActionKind } from '../actions';
 
 export { RAPIER };
 
@@ -84,6 +85,9 @@ export interface PlayerState {
   hanging: boolean;
   /** Which way the player faces (radians around the up axis). */
   facing: number;
+  /** A fun action they're doing right now (wave, punch…), and how long they've been doing it. */
+  action?: ActionKind | null;
+  actionTime?: number;
 }
 
 export interface Vec3 {
@@ -126,6 +130,11 @@ interface PlayerBody {
   spawn: Vec3;
   /** Scrambling over an edge: which way, and for how much longer. */
   mantle: { x: number; z: number; time: number };
+  /** The fun action going on right now, and for how long (seconds). */
+  action: { kind: ActionKind; time: number } | null;
+  punchCooldown: number;
+  /** Seconds left of stumbling after being punched (no control over your feet). */
+  stumble: number;
 }
 
 export class GameWorld {
@@ -192,6 +201,9 @@ export class GameWorld {
       team,
       spawn: spot,
       mantle: { x: 0, z: 0, time: 0 },
+      action: null,
+      punchCooldown: 0,
+      stumble: 0,
     });
   }
 
@@ -222,6 +234,7 @@ export class GameWorld {
     for (const [id, player] of this.players) {
       this.applyInput(player, inputs.get(id) ?? NO_INPUT);
     }
+    this.updateActions();
     this.updateRopes();
     this.world.step();
 
@@ -249,7 +262,66 @@ export class GameWorld {
       stunned: player.stunned > 0,
       hanging: player.hangPoint !== null,
       facing: player.facing,
+      action: player.action?.kind ?? null,
+      actionTime: player.action?.time ?? 0,
     };
+  }
+
+  /**
+   * Starts a fun action (wave, punch, dance, cheer). Returns false if you can't right now
+   * (lying flat, hanging, stumbling, or punching too fast).
+   */
+  doAction(id: string, kind: ActionKind) {
+    const player = this.players.get(id);
+    if (!player || player.stunned > 0 || player.stumble > 0 || player.hangPoint) return false;
+    if (kind === 'punch') {
+      if (player.punchCooldown > 0) return false;
+      player.punchCooldown = PUNCH.cooldown;
+    }
+    player.action = { kind, time: 0 };
+    return true;
+  }
+
+  /** Moves actions along, lands punches, and ends actions when they're done. */
+  private updateActions() {
+    for (const [id, player] of this.players) {
+      player.punchCooldown -= TICK;
+      const action = player.action;
+      if (!action) continue;
+      const before = action.time;
+      action.time += TICK;
+      // Getting knocked down or caught on a rope stops whatever you were doing.
+      if (player.stunned > 0 || player.hangPoint) {
+        player.action = null;
+        continue;
+      }
+      if (action.kind === 'punch' && before < PUNCH.hitAt && action.time >= PUNCH.hitAt) this.landPunch(id, player);
+      if (action.time >= ACTION_TIME[action.kind]) player.action = null;
+    }
+  }
+
+  /** 👊 Shoves everyone standing right in front of the puncher. */
+  private landPunch(puncherId: string, puncher: PlayerBody) {
+    const from = puncher.body.translation();
+    const aimX = Math.sin(puncher.facing);
+    const aimZ = Math.cos(puncher.facing);
+    for (const [id, target] of this.players) {
+      if (id === puncherId) continue;
+      const to = target.body.translation();
+      const dx = to.x - from.x;
+      const dz = to.z - from.z;
+      const flat = Math.hypot(dx, dz);
+      if (flat > PUNCH.reach || flat < 1e-3 || Math.abs(to.y - from.y) > 1.2) continue;
+      // Only people in front of you (within a wide cone), not behind.
+      if ((dx * aimX + dz * aimZ) / flat < 0.4) continue;
+      const v = target.body.linvel();
+      target.body.setLinvel(
+        { x: v.x + (dx / flat) * PUNCH.shove, y: Math.max(v.y, PUNCH.hop), z: v.z + (dz / flat) * PUNCH.shove },
+        true,
+      );
+      target.stumble = PUNCH.stumble;
+      target.action = null;
+    }
   }
 
   /** How far below a point the nearest floor is (null = nothing below). Players don't count as floor. */
@@ -279,6 +351,8 @@ export class GameWorld {
       player.hangRope = null;
       player.hangGrace = 0;
       player.mantle.time = 0;
+      player.action = null;
+      player.stumble = 0;
     }
     for (const rope of this.ropes) {
       if (members.has(rope.a) || members.has(rope.b)) rope.current = rope.length;
@@ -439,7 +513,14 @@ export class GameWorld {
     if (player.stunned > 0) {
       player.stunned -= TICK;
       input = { ...NO_INPUT, limp: true };
+    } else if (player.stumble > 0) {
+      // Just got punched: stumbling, your feet don't listen for a moment.
+      player.stumble -= TICK;
+      input = { ...NO_INPUT, limp: true };
     }
+
+    // Dancing stops when you start walking (waving and cheering don't).
+    if (player.action?.kind === 'dance' && Math.hypot(input.x, input.z) > 0.3) player.action = null;
 
     if (input.limp) {
       // A limp player just slides to a stop on the ground (and can be dragged around).

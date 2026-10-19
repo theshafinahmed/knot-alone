@@ -39,6 +39,18 @@ Inspired by a co-op rope game seen in a streamer video (players tied with stripe
 - When you get close to the top, you **scramble over the edge** automatically.
 - Land too hard (big fall) and you lie flat like a starfish for about 1 second. ⭐
 
+## Fun actions 🎭
+
+| Action | What it does | Phone | Computer |
+|---|---|---|---|
+| 👋 Wave | One arm up, waving (you can walk while waving) | 😀 menu | **1** |
+| 💃 Dance | Silly dance for 4 s (stops when you walk) | 😀 menu | **2** |
+| 🎉 Cheer | Both arms up, hopping | 😀 menu | **3** |
+| 👊 Punch | Throws a punch. Whoever is right in front of you gets a **small shove**: they stumble back ~1.2 m and can't steer for a moment. Standing at an edge = danger 😈 | 👊 button | **F** or **click** |
+
+- An emoji bubble pops up over your head while you do an action.
+- You can't punch again for 0.6 s (no spamming). You can't do actions while lying flat or hanging.
+
 ## Falling
 
 - Falling off the platforms = your **whole team goes back to the last checkpoint** they reached.

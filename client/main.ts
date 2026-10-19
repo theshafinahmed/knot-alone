@@ -206,6 +206,9 @@ const controls = new Controls(canvas, {
   knob: $('#knob'),
   jump: $('#jump'),
   hint: $('#hint'),
+  punch: $('#punch'),
+  emote: $('#emote'),
+  emoteMenu: $('#emote-menu'),
 });
 
 function startGame(message: Extract<ServerMessage, { type: 'start' }>) {
@@ -291,6 +294,8 @@ renderer.setAnimationLoop(() => {
       sendInput(now, true); // send jumps right away
     }
     sendInput(now);
+    const action = controls.consumeAction();
+    if (action && myId && game.members.has(myId)) connection.send({ type: 'action', action });
     game.update(dt);
 
     // Camera floats behind and above the player we follow.
@@ -312,6 +317,7 @@ renderer.setAnimationLoop(() => {
   } else {
     // Lobby: the camera looks at everyone lined up, gently swaying. It backs up on narrow screens.
     controls.consumeJump();
+    controls.consumeAction();
     updateLineup(dt);
     const width = Math.max(lineup.length, 1) * LINEUP_SPACING + 2;
     const halfFov = Math.atan(Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect);

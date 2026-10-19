@@ -4,7 +4,8 @@
 
 ## Right now
 
-- **Current step:** Step 5 (Friends from anywhere) is **built and working**: Shafin's printed tunnel link works right away. Still to try: a friend on a *different* internet (or Shafin's phone on mobile data), to see if far-away play feels OK. **After that: Step 6, the real 5-minute course.** See [ROADMAP.md](ROADMAP.md).
+- **Current step:** Step 5½ (fun actions) is ✅ **done**. Shafin tried wave, dance, cheer and punch with friends: they work. **Next up: Step 6, the real 5-minute course.** Step 5 is still open for one thing: a test with a friend on a *different* internet. See [ROADMAP.md](ROADMAP.md).
+- **Step 5½ adds:** 👋 wave, 💃 dance, 🎉 cheer, 👊 punch (small shove). Phone: 👊 button left of jump, 😀 above jump opens a menu. Computer: F or click = punch, 1/2/3 = wave/dance/cheer. Emoji bubble over your head.
 - **Step 5 adds:** `npm start` now also opens a free Cloudflare tunnel and prints a public `https://….trycloudflare.com` link + a QR code. The lobby has a 📨 Invite button (QR + link + Share/Copy). `npm run start:local` = Wi-Fi only. You can run the server and play only from your phone: join from the phone first and you're the host.
 - **What works:** `npm start` builds the page and starts the boss server on port 3000. **The server runs the game now** (physics + bots); phones only send controls and draw. Flow: join screen (name, shirt color, hat) → lobby (everyone stands on the start platform with name tags; host picks rope mode ⛓️ chain / 👥 teams of 3 / 👫 teams of 2, adds 0–5 🤖 bots, presses ▶ Start) → game (each team in its own lane; ropes, catching, climbing, rescues as in Step 3; falling only resets your own team). Host buttons in the game: ↺ restart (key **R**), 🏠 back to lobby. A phone that drops out or reloads gets its character back (it's dead weight while away). Max 6 players (people + bots).
 - **Test hook:** `window.knot` in the browser console gives `controls`, `scene`, `connection`, `game`, `myId`.
@@ -23,7 +24,7 @@ npm start       # builds the page + starts the server
 - On a phone on the same Wi-Fi: use the `http://192.168.x.x:3000` address the server prints next to **(WiFi)**.
 - Friends anywhere: wait a few seconds for **"🌍 Friends ANYWHERE…"** and share that link, or scan the QR code. The link changes every restart.
 - `npm run start:local` = no tunnel (Wi-Fi only).
-- Different door number: `PORT=3100 npm start` (handy for testing while another copy runs).
+- Different door number: `npm start -- --port=3100` (handy for testing while another copy runs). Claude's test setup `knot-alone-test` in `.claude/launch.json` runs on 3100 without a tunnel.
 - If it says **"door 3000 is already in use"**: the game is already running in another window. Close that one (Ctrl+C) first.
 - Keep the computer awake (plugged in, sleep off) while playing.
 - If the phone can't open it: Windows Firewall may be blocking Node.js. Allow it on **Private networks** when Windows asks.
@@ -53,6 +54,7 @@ npm start       # builds the page + starts the server
 | `shared/config.ts` | Port (3000) and socket path. |
 | `shared/messages.ts` | Message shapes between server and page (join, input, lobby, start, snap…). |
 | `shared/looks.ts` | Shirt colors, hats, name cleaning. |
+| `shared/actions.ts` | Fun actions (wave, punch, dance, cheer): emojis, how long they last, punch strength/reach/cooldown. |
 | `shared/teams.ts` | Rope modes, which modes fit how many players, `splitTeams`. Max 6 players. |
 
 ## Open questions (not decided yet)
@@ -73,3 +75,5 @@ npm start       # builds the page + starts the server
 | 2026-10-19 | Shafin's first real `npm start`: crashed with "address already in use" (Claude's test server was still on door 3000), then the tunnel stopped with code 1 (real reason was hidden). Fixed: friendly "already running" message, `PORT` setting, tunnel retries 3 times and shows Cloudflare's real error. Tested: busy door message, tunnel opens, tunnel program closes on stop. |
 | 2026-10-19 | Shafin's tunnel link didn't open at first: his internet provider's DNS said "doesn't exist" because the link was opened before it reached the DNS phone books. The tunnel itself was fine (Claude got the game page through Cloudflare Dhaka). Fixed: the server waits until public DNS knows the link (~30 s) before printing it. Tested: the printed link works right away. |
 | 2026-10-19 | Shafin restarted `npm start`: the new link works right away. Step 5 pushed. Left open: test with a friend on a different internet. |
+| 2026-10-19 | Step 5½: fun actions. Wave, dance, cheer (with emoji bubbles) and punch (small shove, server decides who got hit). Phone 👊 + 😀 menu, computer F/click + 1/2/3. Tested with no screen (shove ~1.25 m, can't spam, people behind you aren't hit) and in the browser (all four animations, phone buttons). Added `--port=` for test servers. |
+| 2026-10-19 | Shafin tried the fun actions with friends: they work. Pushed. |

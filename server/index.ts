@@ -15,8 +15,9 @@ import { Room } from './room';
 import { openTunnel, type TunnelHandle } from './tunnel';
 import QRCode from 'qrcode';
 
-/** The door number. Change it with the PORT setting, e.g. `PORT=3100 npm start`. */
-const PORT = Number(process.env.PORT) || DEFAULT_PORT;
+/** The door number. Change it with `npm start -- --port=3100` (or the PORT setting). */
+const portArg = process.argv.find((arg) => arg.startsWith('--port='))?.split('=')[1];
+const PORT = Number(portArg) || Number(process.env.PORT) || DEFAULT_PORT;
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const CLIENT_DIR = path.resolve(ROOT, '../dist/client');

@@ -36,3 +36,7 @@
 | 2026-10-19 | Print a **QR code** in the terminal + an **Invite card** in the lobby | Shafin wants to run the server and play from his phone without touching the computer. Scan and play. |
 | 2026-10-19 | The host is **whoever joins first**, not the computer | The computer is just the field; the captain can be on a phone. Tip printed at startup. |
 | 2026-10-19 | A tunnel problem **never crashes the server** | Wi-Fi play should keep working even with no internet. |
+| 2026-10-19 | Add **fun actions before the course**: wave, punch, dance, cheer | Shafin's idea. Messing with friends is a big part of the fun in rope games. |
+| 2026-10-19 | Punch = **small shove** (~1.2 m stumble), not a big knockback | Funny and can push someone off an edge, but doesn't ruin the game. Shafin picked it. |
+| 2026-10-19 | Phone: **😀 menu** for wave/dance/cheer + its own **👊 button**. Computer: F/click, 1/2/3 | Keeps the phone screen clean; punch needs to be fast. |
+| 2026-10-19 | The **server decides** who got punched | Every phone sees the same shove. No arguing. |

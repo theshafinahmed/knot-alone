@@ -54,6 +54,12 @@
 - [ ] Test with a friend on a different internet connection (mobile data counts!)
 - [ ] If controls feel slow for far-away friends → add own-player prediction
 
+## Step 5½ — Fun actions 🎭 (Shafin's idea, added before the course)
+- [x] 👋 Wave, 💃 Dance, 🎉 Cheer, with an emoji bubble over your head
+- [x] 👊 Punch = small shove (~1.2 m stumble), can knock someone off an edge
+- [x] Phone: 👊 button + 😀 menu. Computer: F / click = punch, 1 wave, 2 dance, 3 cheer
+- [x] Shafin tried it with friends ✅ works
+
 ## Step 6 — The real course 🏗️
 - [ ] Build the ~5-minute toy-brick sky course
 - [ ] Obstacles: thin bridges, spinning discs, sliding blocks, maze, jumps

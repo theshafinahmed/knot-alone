@@ -57,6 +57,13 @@
 - The rope look matches the video: red-and-white stripes.
 - **Testing tip:** the physics can run without a screen. Quick test scripts that drive `GameWorld` + `BotBrain` with `npx tsx` and print positions were how the rope rules got tuned. Write new ones for new rope problems.
 
+## Fun actions (wave, punch, dance, cheer)
+
+- List and numbers live in `shared/actions.ts` (how long each lasts, punch reach/strength/cooldown).
+- The page sends `{ type: 'action', action }`. The **server decides**: `GameWorld.doAction` starts it (refused while stunned, hanging, stumbling, or during the punch cooldown). `updateActions` moves it along every tick.
+- **Punch:** at 0.12 s the fist "lands". Everyone within 1.5 m, in front of you (wide cone), about the same height, gets a shove (4.5 m/s + small hop) and **stumbles** for 0.35 s (treated like limp, so they slide to a stop). Tested: ~1.25 m shove, nobody behind you gets hit.
+- Snapshots carry each player's action and how long they've been doing it, so every phone plays the same animation. The animation is only a drawing (`client/character.ts`); the emoji bubble is a little sprite above the name.
+
 ## Characters
 
 - Physics body: a **capsule** (pill shape) kept upright while walking.

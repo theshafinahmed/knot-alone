@@ -80,10 +80,20 @@
       <button id="btn-lobby" type="button" title="Back to the lobby">🏠 Lobby</button>
     </div>
 
-    <div id="hint">Click to look around · <b>WASD</b> move · <b>Space</b> jump (tap while hanging to climb)</div>
+    <div id="hint">
+      Click to look around · <b>WASD</b> move · <b>Space</b> jump (tap while hanging to climb) · <b>F</b>/click punch ·
+      <b>1</b> wave · <b>2</b> dance · <b>3</b> cheer
+    </div>
 
     <div id="joystick"><div id="knob"></div></div>
     <button id="jump" aria-label="Jump">⤒</button>
+    <button id="punch" class="round-button" aria-label="Punch">👊</button>
+    <button id="emote" class="round-button" aria-label="Fun actions">😀</button>
+    <div id="emote-menu" class="hidden">
+      <button type="button" data-action="wave" aria-label="Wave">👋</button>
+      <button type="button" data-action="dance" aria-label="Dance">💃</button>
+      <button type="button" data-action="cheer" aria-label="Cheer">🎉</button>
+    </div>
 
     <div id="loading">Loading…</div>
 

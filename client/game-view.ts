@@ -14,6 +14,7 @@ import {
   type ServerMessage,
 } from '../shared/messages';
 import type { GameWorld, PlayerState } from '../shared/sim/world';
+import { ACTION_FROM_CODE } from '../shared/actions';
 
 /** How far in the past we draw (ms). Bigger = smoother on bad Wi-Fi, but a bit more delay. */
 const INTERP_DELAY = 100;
@@ -124,6 +125,9 @@ export class GameView {
         grounded: (flags & FLAG_GROUNDED) !== 0,
         stunned: (flags & FLAG_STUNNED) !== 0,
         hanging: (flags & FLAG_HANGING) !== 0,
+        // The action and how far along it is (keeps counting smoothly between snapshots).
+        action: ACTION_FROM_CODE[p1[9]] ?? null,
+        actionTime: Math.max(0, p1[10] - (1 - k) * (span / 1000)),
       };
       member.state = state;
       member.shown.set(state.x, state.y, state.z);

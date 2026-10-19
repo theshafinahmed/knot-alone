@@ -1,5 +1,6 @@
 // The shapes of messages sent between the server (the boss) and the game pages.
 
+import type { ActionKind } from './actions';
 import type { Hat } from './looks';
 import type { RopeMode } from './teams';
 
@@ -23,9 +24,10 @@ export interface Invite {
 
 /**
  * One player in a snapshot, as a short array to keep messages small:
- * [id, x, y, z, vx, vy, vz, facing, flags]  (flags: 1 = grounded, 2 = stunned, 4 = hanging)
+ * [id, x, y, z, vx, vy, vz, facing, flags, action, actionTime]
+ * flags: 1 = grounded, 2 = stunned, 4 = hanging. action: 0 = none, else ACTION_CODE (see actions.ts).
  */
-export type SnapPlayer = [string, number, number, number, number, number, number, number, number];
+export type SnapPlayer = [string, number, number, number, number, number, number, number, number, number, number];
 export const FLAG_GROUNDED = 1;
 export const FLAG_STUNNED = 2;
 export const FLAG_HANGING = 4;
@@ -39,6 +41,8 @@ export type ClientMessage =
   | { type: 'join'; token: string; name: string; color: number; hat: Hat }
   /** What your controls are doing. `jumps` counts every jump press ever, so none get lost. */
   | { type: 'input'; x: number; z: number; jumps: number }
+  /** Do a fun action: wave, punch, dance or cheer. */
+  | { type: 'action'; action: ActionKind }
   /** Host only: change the rope mode or the number of bots. */
   | { type: 'setup'; mode?: RopeMode; bots?: number }
   /** Host only. */

@@ -2,6 +2,7 @@
 // of where everyone is. Phones only send their button presses and draw what the room says.
 
 import { WebSocket } from 'ws';
+import { ACTION_CODE, isAction } from '../shared/actions';
 import { TEST_COURSE } from '../shared/course';
 import { cleanName, HATS, isHat, isShirtColor, SHIRT_COLORS, type Hat } from '../shared/looks';
 import {
@@ -159,6 +160,9 @@ export class Room {
         };
         break;
       }
+      case 'action':
+        if (this.game && isAction(message.action)) this.game.world.doAction(person.id, message.action);
+        break;
       case 'setup':
         if (!this.isHost(person) || this.phase !== 'lobby') return;
         if (isRopeMode(message.mode)) this.mode = message.mode;
@@ -356,7 +360,20 @@ export class Room {
     for (const id of game.world.playerIds) {
       const s = game.world.getState(id)!;
       const flags = (s.grounded ? FLAG_GROUNDED : 0) | (s.stunned ? FLAG_STUNNED : 0) | (s.hanging ? FLAG_HANGING : 0);
-      p.push([id, round(s.x), round(s.y), round(s.z), round(s.vx), round(s.vy), round(s.vz), round(s.facing), flags]);
+      const action = s.action ? ACTION_CODE[s.action] : 0;
+      p.push([
+        id,
+        round(s.x),
+        round(s.y),
+        round(s.z),
+        round(s.vx),
+        round(s.vy),
+        round(s.vz),
+        round(s.facing),
+        flags,
+        action,
+        round(s.actionTime ?? 0),
+      ]);
     }
     const r: SnapRope[] = game.world
       .getRopes()

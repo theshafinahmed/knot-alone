@@ -6,6 +6,12 @@
       "runtimeExecutable": "npm",
       "runtimeArgs": ["start"],
       "port": 3000
+    },
+    {
+      "name": "knot-alone-test",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["tsx", "server/index.ts", "--local", "--port=3100"],
+      "port": 3100
     }
   ]
 }

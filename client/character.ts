@@ -2,6 +2,7 @@
 
 import * as THREE from 'three';
 import type { Hat } from '../shared/looks';
+import { ACTION_EMOJI, PUNCH, type ActionKind } from '../shared/actions';
 import { createHat } from './hats';
 import { createNameTag } from './nametag';
 
@@ -10,6 +11,29 @@ const SKIN = 0xffcc4d;
 const PANTS = 0x264653;
 
 const box = (w: number, h: number, d: number) => new THREE.BoxGeometry(w, h, d);
+
+// Emoji bubbles (👋 💃 🎉 👊) that pop up above the name while doing an action. One picture per emoji, shared.
+const bubbleTextures = new Map<string, THREE.Texture>();
+function bubbleTexture(emoji: string) {
+  let texture = bubbleTextures.get(emoji);
+  if (!texture) {
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 96;
+    const ctx = canvas.getContext('2d')!;
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+    ctx.beginPath();
+    ctx.arc(48, 48, 44, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.font = '56px system-ui, "Apple Color Emoji", "Segoe UI Emoji", sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(emoji, 48, 52);
+    texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    bubbleTextures.set(emoji, texture);
+  }
+  return texture;
+}
 const mat = (color: number) => new THREE.MeshStandardMaterial({ color, roughness: 0.6 });
 
 /** Makes a box that hangs down from its top (so arms/legs swing from the shoulder/hip). */
@@ -33,6 +57,7 @@ export class BlockyCharacter {
   private walkCycle = 0;
   private facing = Math.PI;
   private tumble = 0;
+  private readonly bubble = new THREE.Sprite(new THREE.SpriteMaterial({ depthTest: false, transparent: true }));
 
   constructor(color: number, options: { hat?: Hat; name?: string } = {}) {
     const shirt = mat(color);
@@ -91,6 +116,11 @@ export class BlockyCharacter {
       this.root.add(tag);
     }
 
+    this.bubble.position.y = 3.2;
+    this.bubble.renderOrder = 11;
+    this.bubble.visible = false;
+    this.root.add(this.bubble);
+
     // Soft round shadow on the floor (much cheaper than real shadows).
     const shadow = new THREE.Mesh(
       new THREE.CircleGeometry(0.55, 24),
@@ -136,6 +166,8 @@ export class BlockyCharacter {
       grounded: boolean;
       stunned: boolean;
       facing: number;
+      action?: ActionKind | null;
+      actionTime?: number;
     },
     floorDistance: number | null,
   ) {
@@ -192,6 +224,47 @@ export class BlockyCharacter {
       this.tumble = 0;
     }
 
+    // A little bounce while running.
+    let bounce = state.grounded && !state.stunned ? Math.abs(Math.sin(this.walkCycle)) * 0.06 * Math.min(speed / 7, 1) : 0;
+
+    // 🎭 Fun actions take over the arms (and sometimes the whole body).
+    let leftOut = armsOut;
+    let rightOut = armsOut;
+    let twist = 0;
+    let armEase = 18;
+    const action = state.stunned ? null : (state.action ?? null);
+    const t = state.actionTime ?? 0;
+    switch (action) {
+      case 'wave': // one arm up high, waving side to side
+        rightArm = 0;
+        rightOut = 2.6 + Math.sin(t * 12) * 0.35;
+        break;
+      case 'punch': // pull the fist back, then throw it straight forward
+        armEase = 40;
+        if (t < PUNCH.hitAt) {
+          rightArm = 0.6;
+        } else if (t < PUNCH.hitAt + 0.15) {
+          rightArm = -1.65;
+          rightOut = 0.05;
+          tilt += 0.15;
+        }
+        break;
+      case 'dance': // swing arms, wiggle the hips, bop up and down
+        leftArm = Math.sin(t * 8) * 1.2;
+        rightArm = -Math.sin(t * 8) * 1.2;
+        leftOut = rightOut = 0.6;
+        leftLeg = Math.max(0, Math.sin(t * 8)) * 0.5;
+        rightLeg = Math.max(0, -Math.sin(t * 8)) * 0.5;
+        twist = Math.sin(t * 4) * 0.6;
+        bounce = Math.abs(Math.sin(t * 8)) * 0.12;
+        break;
+      case 'cheer': // both arms up, little hops
+        leftArm = rightArm = 0;
+        leftOut = rightOut = 2.7 + Math.sin(t * 14) * 0.15;
+        bounce = Math.abs(Math.sin(t * 7)) * 0.25;
+        break;
+    }
+
     if (this.tumble === 0) {
       // Coming out of a tumble: take the short way back to upright.
       this.pivot.rotation.x = Math.atan2(Math.sin(this.pivot.rotation.x), Math.cos(this.pivot.rotation.x));
@@ -201,19 +274,34 @@ export class BlockyCharacter {
     this.pivot.position.y += (middle - this.pivot.position.y) * bodyEase;
 
     const ease = Math.min(1, dt * 18);
-    const blend = (limb: THREE.Group, axis: 'x' | 'z', target: number) => {
-      limb.rotation[axis] += (target - limb.rotation[axis]) * ease;
+    const blend = (limb: THREE.Group, axis: 'x' | 'y' | 'z', target: number, k = ease) => {
+      limb.rotation[axis] += (target - limb.rotation[axis]) * k;
     };
+    const fastEase = Math.min(1, dt * armEase);
     blend(this.leftArm, 'x', leftArm);
-    blend(this.rightArm, 'x', rightArm);
-    blend(this.leftArm, 'z', -armsOut);
-    blend(this.rightArm, 'z', armsOut);
+    blend(this.rightArm, 'x', rightArm, fastEase);
+    blend(this.leftArm, 'z', -leftOut);
+    blend(this.rightArm, 'z', rightOut, fastEase);
     blend(this.leftLeg, 'x', leftLeg);
     blend(this.rightLeg, 'x', rightLeg);
+    blend(this.body, 'y', twist);
 
-    // A little bounce while running.
-    const bounce = state.grounded && !state.stunned ? Math.abs(Math.sin(this.walkCycle)) * 0.06 * Math.min(speed / 7, 1) : 0;
     this.body.position.y = -MIDDLE + bounce;
+
+    // Emoji bubble pops up while doing an action.
+    if (action) {
+      const material = this.bubble.material;
+      const texture = bubbleTexture(ACTION_EMOJI[action]);
+      if (material.map !== texture) {
+        material.map = texture;
+        material.needsUpdate = true;
+      }
+      const pop = Math.min(1, t * 6);
+      this.bubble.scale.setScalar(0.85 * (0.6 + 0.4 * pop));
+      this.bubble.visible = true;
+    } else {
+      this.bubble.visible = false;
+    }
 
     // Shadow sits on the floor, and gets smaller and fainter the higher we are.
     if (floorDistance === null || floorDistance > 30) {
